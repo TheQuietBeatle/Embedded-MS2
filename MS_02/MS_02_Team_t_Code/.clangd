@@ -1,2 +1,7 @@
 CompileFlags:
   CompilationDatabase: build
+
+# pico/stdlib.h is an umbrella header: it is used through the headers it
+# includes, so clangd's "not used directly" hint is a false alarm here.
+Diagnostics:
+  UnusedIncludes: None
