@@ -350,6 +350,72 @@ static bool http_start(void) {
     return ok;
 }
 
+// ---- Wi-Fi ----------------------------------------------------------------------
+static const char *wifi_error_text(int err) {
+    switch (err) {
+    case PICO_ERROR_BADAUTH:        return "wrong password";
+    case PICO_ERROR_TIMEOUT:        return "timed out - network not found (name typo? 5 GHz only? out of range?)";
+    case PICO_ERROR_CONNECT_FAILED: return "connection refused by the network";
+    default:                        return "unknown error";
+    }
+}
+
+static const char *auth_name(uint8_t auth) {
+    // Scan flags from the cyw43 driver: 4 = RSN (WPA2 or WPA3), 2 = WPA, 1 = WEP/privacy
+    if (auth == 0)  return "open";
+    if (auth & 0x4) return "WPA2/WPA3";
+    if (auth & 0x2) return "WPA";
+    return "WEP";
+}
+
+static int scan_result(void *env, const cyw43_ev_scan_result_t *r) {
+    (void)env;
+    if (r && r->ssid_len > 0) {
+        printf("    %-32.*s  ch %2u  %4d dBm  %s\n", r->ssid_len, (const char *)r->ssid,
+               r->channel, r->rssi, auth_name(r->auth_mode));
+    }
+    return 0;
+}
+
+// Print the 2.4 GHz networks the Pico W can see (it cannot see 5 GHz at all).
+static void wifi_scan_print(void) {
+    cyw43_wifi_scan_options_t opts = {0};
+    printf("  Networks the Pico can see (duplicates are normal):\n");
+    cyw43_arch_lwip_begin();
+    int err = cyw43_wifi_scan(&cyw43_state, &opts, NULL, scan_result);
+    cyw43_arch_lwip_end();
+    if (err != 0) {
+        printf("    scan failed (%d)\n", err);
+        return;
+    }
+    while (cyw43_wifi_scan_active(&cyw43_state)) {
+        sleep_ms(100);
+    }
+    printf("  If \"%s\" is not listed: wrong name, 5 GHz only, or too far away.\n", WIFI_SSID);
+}
+
+// Keep trying until connected: WPA2 first, then WPA2/WPA3 (for WPA3 phone hotspots).
+static void wifi_connect(void) {
+    static const uint32_t auth_modes[] = { CYW43_AUTH_WPA2_AES_PSK, CYW43_AUTH_WPA3_WPA2_AES_PSK };
+    static const char *auth_names[]    = { "WPA2", "WPA2/WPA3" };
+    bool scanned = false;
+
+    printf("Connecting to Wi-Fi \"%s\"...\n", WIFI_SSID);
+    for (int attempt = 0; ; attempt++) {
+        int m = attempt % 2;
+        int err = cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, auth_modes[m], 20000);
+        if (err == 0) {
+            printf("Connected (%s).\n", auth_names[m]);
+            return;
+        }
+        printf("  %s attempt failed: %s (%d)\n", auth_names[m], wifi_error_text(err), err);
+        if (!scanned) {
+            wifi_scan_print();
+            scanned = true;
+        }
+    }
+}
+
 // ---- Main -----------------------------------------------------------------------
 int main(void) {
     stdio_init_all();
@@ -374,11 +440,7 @@ int main(void) {
         return 1;
     }
     cyw43_arch_enable_sta_mode();
-    printf("Connecting to Wi-Fi \"%s\"...\n", WIFI_SSID);
-    while (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD,
-                                              CYW43_AUTH_WPA2_AES_PSK, 20000) != 0) {
-        printf("  failed - check WIFI_SSID / WIFI_PASSWORD in wifi_config.h (2.4 GHz only). Retrying...\n");
-    }
+    wifi_connect();
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
 
     if (!http_start()) {
