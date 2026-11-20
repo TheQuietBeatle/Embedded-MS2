@@ -69,7 +69,13 @@ add_executable(ms02_web_control
     dhcp_server.c
     servo.c
     motor.c
+    fsr.c
+    mic.c
 )
+
+# The mic driver's PIO program, for the web program too
+pico_generate_pio_header(ms02_web_control ${CMAKE_CURRENT_LIST_DIR}/i2s_in.pio
+    OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/web_pio)
 
 target_include_directories(ms02_web_control PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
@@ -77,6 +83,8 @@ target_link_libraries(ms02_web_control
     pico_stdlib
     pico_cyw43_arch_lwip_threadsafe_background
     hardware_pwm
+    hardware_adc
+    hardware_pio
     hardware_clocks
 )
 
