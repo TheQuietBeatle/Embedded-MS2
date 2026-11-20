@@ -4,12 +4,12 @@
         {
             "label": "Configure CMake",
             "type": "process",
-            "command": "${userHome}/.pico-sdk/cmake/v4.3.4/bin/cmake.exe",
+            "command": "${env:USERPROFILE}/.pico-sdk/cmake/v4.3.4/bin/cmake.exe",
             "args": [
                 "-S", "${workspaceFolder}",
                 "-B", "${workspaceFolder}/build",
                 "-G", "Ninja",
-                "-DCMAKE_MAKE_PROGRAM=${userHome}/.pico-sdk/ninja/v1.13.2/ninja.exe"
+                "-DCMAKE_MAKE_PROGRAM=${env:USERPROFILE}/.pico-sdk/ninja/v1.13.2/ninja.exe"
             ],
             "presentation": { "reveal": "always", "panel": "dedicated" },
             "problemMatcher": []
@@ -18,7 +18,7 @@
             "label": "Compile Project",
             "type": "process",
             "isBuildCommand": true,
-            "command": "${userHome}/.pico-sdk/ninja/v1.13.2/ninja.exe",
+            "command": "${env:USERPROFILE}/.pico-sdk/ninja/v1.13.2/ninja.exe",
             "args": ["-C", "${workspaceFolder}/build"],
             "dependsOn": ["Configure CMake"],
             "group": { "kind": "build", "isDefault": true },
@@ -28,7 +28,7 @@
         {
             "label": "Run Project",
             "type": "process",
-            "command": "${userHome}/.pico-sdk/picotool/2.3.1/picotool/picotool.exe",
+            "command": "${env:USERPROFILE}/.pico-sdk/picotool/2.3.1/picotool/picotool.exe",
             "args": ["load", "${workspaceFolder}/build/ms02_neural_calibrator.uf2", "-fx"],
             "dependsOn": ["Compile Project"],
             "presentation": { "reveal": "always", "panel": "dedicated" },
