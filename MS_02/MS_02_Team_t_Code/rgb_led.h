@@ -1,7 +1,9 @@
-// rgb_led.h - Common-cathode RGB LED driver (one PWM channel per colour).
+// rgb_led.h - Status LED driver: three separate LEDs (red, green, blue),
+// one PWM channel each.
 //
-// Wiring: GPIO -> 220 ohm -> LED anode (R, G, B); LED cathode -> GND.
-// Brightness 0 (off) to 255 (full) per colour, 1 kHz PWM.
+// Wiring per LED: GPIO -> 220 ohm -> LED anode (long leg); cathode (short leg) -> GND.
+// Brightness 0 (off) to 255 (full) per LED, 1 kHz PWM.
+// "Mixed" colours (e.g. RGB_YELLOW) simply light more than one LED at once.
 #ifndef RGB_LED_H
 #define RGB_LED_H
 

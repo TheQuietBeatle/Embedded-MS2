@@ -1,4 +1,4 @@
-// rgb_led.c - Common-cathode RGB LED driver (one PWM channel per colour).
+// rgb_led.c - Status LED driver: three separate LEDs (red, green, blue), one PWM channel each.
 #include "rgb_led.h"
 
 #include "pico/stdlib.h"

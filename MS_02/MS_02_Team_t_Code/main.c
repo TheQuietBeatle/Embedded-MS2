@@ -3,11 +3,11 @@
 // Actuators (run once at start-up, then the sensor loop starts):
 //   1. Servos   - home all six to 90 deg one at a time, then sweep each joint
 //                 inside its limits at 2 deg / 20 ms.
-//   2. RGB LED  - red, green, blue, yellow, then a white fade up and down.
+//   2. LEDs     - red, green, blue, red+green, then all three fade up and down.
 //   3. Motor    - ramp forward to 70 %, back to 0, ramp reverse to 70 %, brake.
-// Sensors (forever, verified on the RGB LED as the brief asks):
-//   - FSR force    -> GREEN brightness (press harder = brighter)
-//   - Mic loudness -> RED brightness   (talk or clap = brighter)
+// Sensors (forever, verified on the LEDs as the brief asks):
+//   - FSR force    -> GREEN LED brightness (press harder = brighter)
+//   - Mic loudness -> RED LED brightness   (talk or clap = brighter)
 //   Both values are also printed over USB serial every ~100 ms.
 
 #include <stdio.h>
