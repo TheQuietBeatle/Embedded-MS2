@@ -2,8 +2,11 @@
 //
 // Separate program from the MS2 driver test (main.c); both build from this folder.
 //   Power-up : every joint homes to 90 deg, one at a time.
-//   Wi-Fi    : joins WIFI_SSID (see wifi_config.example.h); the address to open is
-//              printed over USB serial and the onboard LED turns on when connected.
+//   Wi-Fi    : joins WIFI_SSID (see wifi_config.example.h). If that fails twice (or
+//              WIFI_SSID is ""), the Pico starts its OWN network "NeuralCalibrator"
+//              (password robotarm123) - join it and open http://192.168.4.1.
+//              The address is printed over USB serial; the onboard LED turns on
+//              once the network is up.
 //   Web page : slider + buttons per joint, gripper Open / Close-step, Home all,
 //              reward motor Forward / Reverse / Stop.
 //   Motion   : non-blocking, at most STEP_DEG every STEP_MS, and only ONE joint moves
@@ -24,6 +27,7 @@
 #include "pins.h"
 #include "servo.h"
 #include "motor.h"
+#include "dhcp_server.h"
 
 #if __has_include("wifi_config.h")
 #include "wifi_config.h"
@@ -45,6 +49,16 @@
 #define STEP_MS          20u
 #define MOTOR_MAX_MS     5000u     // a web motor command never runs longer than this
 #define HTTP_PORT        80
+#define WIFI_JOIN_ATTEMPTS 2       // WPA2 + WPA2/WPA3, ~40 s, then own network
+
+// The Pico's own network, used when WIFI_SSID can't be joined (or is "").
+// Override in wifi_config.h if you like.
+#ifndef AP_SSID
+#define AP_SSID          "NeuralCalibrator"
+#endif
+#ifndef AP_PASSWORD
+#define AP_PASSWORD      "robotarm123"      // at least 8 characters
+#endif
 
 // ---- Joints -------------------------------------------------------------------
 enum { WAIST, SHOULDER, ELBOW, WRIST_PITCH, WRIST_ROLL, GRIPPER, NUM_JOINTS };
@@ -413,22 +427,42 @@ static void wifi_scan_print(void) {
     }
 }
 
-// Keep trying until connected: WPA2 first, then WPA2/WPA3 (for WPA3 phone hotspots).
-static void wifi_connect(void) {
+// Try to join WIFI_SSID: WPA2 first, then WPA2/WPA3 (for WPA3 phone hotspots).
+// Returns false after WIFI_JOIN_ATTEMPTS failures so the caller can fall back
+// to the Pico's own network.
+static bool wifi_join(void) {
     static const uint32_t auth_modes[] = { CYW43_AUTH_WPA2_AES_PSK, CYW43_AUTH_WPA3_WPA2_AES_PSK };
     static const char *auth_names[]    = { "WPA2", "WPA2/WPA3" };
 
+    if (strlen(WIFI_SSID) == 0) {
+        printf("WIFI_SSID is empty - skipping straight to the Pico's own network.\n");
+        return false;
+    }
     wifi_scan_print();
     printf("Connecting to Wi-Fi \"%s\"...\n", WIFI_SSID);
-    for (int attempt = 0; ; attempt++) {
+    for (int attempt = 0; attempt < WIFI_JOIN_ATTEMPTS; attempt++) {
         int m = attempt % 2;
         int err = cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, auth_modes[m], 20000);
         if (err == 0) {
             printf("Connected (%s).\n", auth_names[m]);
-            return;
+            return true;
         }
-        printf("  %s attempt failed: %s (%d). Retrying...\n", auth_names[m], wifi_error_text(err), err);
+        printf("  %s attempt failed: %s (%d)\n", auth_names[m], wifi_error_text(err), err);
     }
+    return false;
+}
+
+// Start the Pico's own Wi-Fi network with a DHCP server. Returns its interface.
+static struct netif *start_own_network(void) {
+    cyw43_arch_disable_sta_mode();
+    cyw43_arch_enable_ap_mode(AP_SSID, AP_PASSWORD, CYW43_AUTH_WPA2_AES_PSK);
+    struct netif *ap = &cyw43_state.netif[CYW43_ITF_AP];
+    cyw43_arch_lwip_begin();
+    bool ok = dhcp_server_start(ap);
+    cyw43_arch_lwip_end();
+    printf("Started own Wi-Fi network \"%s\" (password \"%s\")%s\n",
+           AP_SSID, AP_PASSWORD, ok ? "" : " - DHCP server FAILED");
+    return ap;
 }
 
 // ---- Main -----------------------------------------------------------------------
@@ -459,7 +493,12 @@ int main(void) {
         return 1;
     }
     cyw43_arch_enable_sta_mode();
-    wifi_connect();
+    struct netif *net = &cyw43_state.netif[CYW43_ITF_STA];
+    bool own_network = !wifi_join();
+    if (own_network) {
+        printf("Could not join \"%s\" - switching to the Pico's own network.\n", WIFI_SSID);
+        net = start_own_network();
+    }
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
 
     if (!http_start()) {
@@ -475,8 +514,12 @@ int main(void) {
     while (true) {
         // Remind the address every 10 s in case the serial monitor was opened late.
         if (time_reached(next_ip_print)) {
-            printf("Open http://%s\n",
-                   ip4addr_ntoa(netif_ip4_addr(&cyw43_state.netif[CYW43_ITF_STA])));
+            if (own_network) {
+                printf("Join Wi-Fi \"%s\" (password \"%s\"), then open http://%s\n",
+                       AP_SSID, AP_PASSWORD, ip4addr_ntoa(netif_ip4_addr(net)));
+            } else {
+                printf("Open http://%s\n", ip4addr_ntoa(netif_ip4_addr(net)));
+            }
             next_ip_print = make_timeout_time_ms(10000);
         }
 

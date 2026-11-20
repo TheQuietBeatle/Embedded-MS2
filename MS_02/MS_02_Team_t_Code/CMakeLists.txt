@@ -66,6 +66,7 @@ pico_add_extra_outputs(ms02_neural_calibrator)
 # Builds ms02_web_control.uf2 next to the driver test.
 add_executable(ms02_web_control
     web_control.c
+    dhcp_server.c
     servo.c
     motor.c
 )
