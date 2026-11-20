@@ -59,3 +59,26 @@ pico_enable_stdio_uart(ms02_neural_calibrator 0)
 
 # Produces the .uf2 file to drag onto the Pico
 pico_add_extra_outputs(ms02_neural_calibrator)
+
+# ---------------------------------------------------------------------------
+# Second program: web page that controls the arm and the reward motor.
+# Copy wifi_config.example.h to wifi_config.h and set your Wi-Fi first.
+# Builds ms02_web_control.uf2 next to the driver test.
+add_executable(ms02_web_control
+    web_control.c
+    servo.c
+    motor.c
+)
+
+target_include_directories(ms02_web_control PRIVATE ${CMAKE_CURRENT_LIST_DIR})
+
+target_link_libraries(ms02_web_control
+    pico_stdlib
+    pico_cyw43_arch_lwip_threadsafe_background
+    hardware_pwm
+    hardware_clocks
+)
+
+pico_enable_stdio_usb(ms02_web_control 1)
+pico_enable_stdio_uart(ms02_web_control 0)
+pico_add_extra_outputs(ms02_web_control)
