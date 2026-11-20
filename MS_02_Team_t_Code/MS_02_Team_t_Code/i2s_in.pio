@@ -1,0 +1,62 @@
+; i2s_in.pio - I2S receiver for one INMP441 microphone (left channel).
+;
+; The PIO generates the clocks itself (it is the I2S controller):
+;   side-set bit 0 = SCK (bit clock)   -> PIN_MIC_SCK
+;   side-set bit 1 = WS  (word select) -> PIN_MIC_WS  (must be SCK + 1)
+;   in pin         = SD  (data)        -> PIN_MIC_SD
+;
+; One frame = 64 SCK periods = 128 instructions (2 per SCK period).
+; WS low for slots 0-31 (left), high for slots 32-63 (right).
+; I2S delays data one bit after WS changes, so the left word's 32 bits are
+; sampled on the rising edges of slots 1..32. The mic changes SD on the
+; falling edge; we sample when SCK goes high.
+; Only the left word is shifted in (L/R pin tied to GND), so every 32-bit
+; autopush is exactly one sample - the FIFO can never get out of step.
+
+.program i2s_in
+.side_set 2
+
+.wrap_target
+    nop                side 0b00   ; slot 0 low   (WS=0: left frame begins)
+    nop                side 0b01   ; slot 0 high  (last bit of the right word - ignored)
+public entry_point:
+    set x, 29          side 0b00   ; slot 1 low
+left_loop:
+    in pins, 1         side 0b01   ; slots 1..30 high: left bits 31..2
+    jmp x-- left_loop  side 0b00   ; slots 2..31 low
+    in pins, 1         side 0b01   ; slot 31 high: left bit 1
+    nop                side 0b10   ; slot 32 low  (WS=1)
+    in pins, 1         side 0b11   ; slot 32 high: left bit 0 -> autopush
+    set x, 29          side 0b10   ; slot 33 low
+right_loop:
+    nop                side 0b11   ; slots 33..62 high (right channel unused)
+    jmp x-- right_loop side 0b10   ; slots 34..63 low
+    nop                side 0b11   ; slot 63 high
+.wrap
+
+% c-sdk {
+#include "hardware/clocks.h"
+
+static inline void i2s_in_program_init(PIO pio, uint sm, uint offset,
+                                       uint pin_sck, uint pin_sd, uint32_t sample_rate) {
+    pio_sm_config c = i2s_in_program_get_default_config(offset);
+
+    sm_config_set_sideset_pins(&c, pin_sck);          // SCK, WS = pin_sck + 1
+    sm_config_set_in_pins(&c, pin_sd);
+    sm_config_set_in_shift(&c, false, true, 32);      // MSB first, autopush every 32 bits
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);    // 8-word receive FIFO
+
+    // 2 instructions per SCK period, 64 SCK periods per sample
+    float div = (float)clock_get_hz(clk_sys) / (sample_rate * 64.0f * 2.0f);
+    sm_config_set_clkdiv(&c, div);
+
+    pio_gpio_init(pio, pin_sck);
+    pio_gpio_init(pio, pin_sck + 1);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin_sck, 2, true);   // SCK, WS outputs
+    pio_sm_set_consecutive_pindirs(pio, sm, pin_sd, 1, false);   // SD input
+    gpio_pull_down(pin_sd);                                      // defined level when the mic is idle
+
+    pio_sm_init(pio, sm, offset + i2s_in_offset_entry_point, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}
