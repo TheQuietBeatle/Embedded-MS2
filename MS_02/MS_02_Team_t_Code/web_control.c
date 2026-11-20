@@ -7,8 +7,9 @@
 //              (password robotarm123) - join it and open http://192.168.4.1.
 //              The address is printed over USB serial; the onboard LED turns on
 //              once the network is up.
-//   Web page : slider + buttons per joint, gripper Open / Close-step, Home all,
-//              reward motor Forward / Reverse / Stop.
+//   Web page : live grip-pressure indicator (FSR) with the hold zone and safety
+//              limit marked, mic test (sound level meter with peak marker), slider + buttons per joint, gripper Open / Close-step,
+//              Home all, reward motor Forward / Reverse / Stop.
 //   Motion   : non-blocking, at most STEP_DEG every STEP_MS, and only ONE joint moves
 //              at a time so a 5 V 2 A adapter is not overloaded.
 //
@@ -27,6 +28,8 @@
 #include "pins.h"
 #include "servo.h"
 #include "motor.h"
+#include "fsr.h"
+#include "mic.h"
 #include "dhcp_server.h"
 
 #if __has_include("wifi_config.h")
@@ -48,6 +51,19 @@
 #define STEP_DEG         2.0f
 #define STEP_MS          20u
 #define MOTOR_MAX_MS     5000u     // a web motor command never runs longer than this
+
+// Grip pressure indicator (FSR, 0-1000 units from fsr_read_units())
+#define FSR_ZONE_LO      175       // hold zone, shown green on the page
+#define FSR_ZONE_HI      185
+#define FSR_SAFETY       400       // shown red: the gripper should back off above this
+#define FSR_BAR_MAX      500       // full width of the page's bar
+#define FSR_READ_MS      50u       // how often the main loop samples the FSR
+
+// Mic test (INMP441 sound level meter on the page)
+#define MIC_READ_MS      60u       // how often the main loop measures loudness
+#define MIC_BURST        160u      // samples per measurement = 10 ms at 16 kHz (keeps servos smooth)
+#define MIC_QUIET        500u      // level shown as an empty bar   (tune from what the page shows)
+#define MIC_LOUD         60000u    // level shown as a full bar
 #define HTTP_PORT        80
 #define WIFI_JOIN_ATTEMPTS 2       // WPA2 + WPA2/WPA3, ~40 s, then own network
 
@@ -87,6 +103,14 @@ static volatile bool     motor_req_pending;
 static volatile int8_t   motor_req_speed;
 static volatile uint32_t motor_req_ms;
 
+// Latest FSR reading, sampled by the main loop (the ADC is only touched there)
+static volatile uint16_t fsr_units;
+static volatile uint16_t fsr_raw;
+
+// Latest mic loudness, measured by the main loop
+static bool              mic_ok;
+static volatile uint32_t mic_level;
+
 static float clampf(float v, float lo, float hi) {
     return v < lo ? lo : (v > hi ? hi : v);
 }
@@ -115,9 +139,24 @@ static const char PAGE[] =
 "button{flex:1;padding:12px;font-size:15px;border:0;border-radius:10px;background:#2d3340;color:#eee}"
 "button:active{background:#4f9cff}.stop{background:#4a2a2e}"
 "input{width:100%;margin-top:10px;accent-color:#4f9cff}"
+".bar{position:relative;height:20px;background:#2d3340;border-radius:10px;margin:10px 0 6px;overflow:hidden}"
+".fill{position:absolute;left:0;top:0;bottom:0;width:0;background:#4f9cff;transition:width .2s,background .2s}"
+".zone{position:absolute;top:0;bottom:0;background:#3ecf8e;opacity:.75;min-width:3px}"
+".safe{position:absolute;top:0;bottom:0;right:0;background:#ff5d5d;opacity:.35}"
+".st{font-weight:600}.meta{color:#888;font-size:13px}"
+".peak{position:absolute;top:0;bottom:0;width:3px;background:#fff;opacity:.8;left:0}"
 "#msg{color:#888;font-size:13px;margin-bottom:12px}"
 "</style></head><body>"
 "<h2>Neural Calibrator Arm</h2><div id=\"msg\">connecting...</div>"
+"<div class=\"card\"><div class=\"row\"><span class=\"lbl\">Grip pressure (FSR)</span>"
+"<span class=\"ang\" id=\"fsr\">--</span></div>"
+"<div class=\"bar\"><div id=\"fsrbar\" class=\"fill\"></div><div id=\"zone\" class=\"zone\"></div>"
+"<div id=\"safe\" class=\"safe\"></div></div>"
+"<div class=\"row\"><span id=\"fsrst\" class=\"st\">--</span><span id=\"fsrinfo\" class=\"meta\"></span></div></div>"
+"<div class=\"card\"><div class=\"row\"><span class=\"lbl\">Mic test (INMP441)</span>"
+"<span class=\"ang\" id=\"mic\">--</span></div>"
+"<div class=\"bar\"><div id=\"micbar\" class=\"fill\"></div><div id=\"micpk\" class=\"peak\"></div></div>"
+"<div class=\"row\"><span id=\"micst\" class=\"st\">--</span><span class=\"meta\">talk or clap near the mic</span></div></div>"
 "<div id=\"joints\"></div>"
 "<div class=\"btns\" style=\"margin-bottom:10px\"><button onclick=\"go('/home')\">Home all (90&deg;)</button></div>"
 "<div class=\"card\"><div class=\"row\"><span class=\"lbl\">Reward motor (L298N)</span>"
@@ -139,9 +178,24 @@ static const char PAGE[] =
 "'</div></div>'}$('joints').innerHTML=h;built=true}"
 "function show(d){if(!built)build(d);for(const s of d.servos){$('v_'+s.key).textContent=s.angle;"
 "if(drag!==s.key)$('s_'+s.key).value=s.target}$('mot').textContent=d.motor;"
-"$('msg').textContent=d.moving?'moving...':'connected'}"
+"$('msg').textContent=d.moving?'moving...':'connected';if(d.fsr)fsr(d.fsr);if(d.mic)mic(d.mic)}"
+"let pk=0;function mic(m){if(!m.ok){$('mic').textContent='--';$('micst').textContent='Mic not detected - check wiring';"
+"$('micst').style.color='#ff5d5d';return}"
+"const r=Math.log10(Math.max(m.level,m.quiet)/m.quiet)/Math.log10(m.loud/m.quiet),p=Math.min(1,Math.max(0,r))*100;"
+"pk=Math.max(p,pk-4);$('mic').textContent=m.level;$('micbar').style.width=p+'%';$('micpk').style.left=pk+'%';"
+"const t=p<5?'Quiet':p<60?'Sound detected':'Loud',c=p<5?'#888':p<60?'#3ecf8e':'#f5b942';"
+"$('micst').textContent=t;$('micst').style.color=c;$('micbar').style.background=c}"
+"function pct(v,f){return Math.min(100,Math.max(0,v*100/f.scale))+'%'}"
+"function fsr(f){const u=f.units;$('fsr').textContent=u;$('fsrbar').style.width=pct(u,f);"
+"$('zone').style.left=pct(f.zone_lo,f);$('zone').style.width=pct(f.zone_hi-f.zone_lo,f);"
+"$('safe').style.left=pct(f.safety,f);"
+"let t,c;if(u>=f.safety){t='SAFETY LIMIT - open the gripper';c='#ff5d5d'}"
+"else if(u>f.zone_hi){t='Too hard';c='#f5b942'}else if(u>=f.zone_lo){t='IN ZONE';c='#3ecf8e'}"
+"else{t=u<5?'No pressure':'Too light';c='#4f9cff'}"
+"$('fsrst').textContent=t;$('fsrst').style.color=c;$('fsrbar').style.background=c;"
+"$('fsrinfo').textContent='zone '+f.zone_lo+'-'+f.zone_hi+' | raw ADC '+f.raw}"
 "async function go(p){try{show(await (await fetch(p)).json())}catch(e){$('msg').textContent='no response from Pico'}}"
-"go('/state');setInterval(()=>go('/state'),500);"
+"go('/state');setInterval(()=>go('/state'),300);"
 "</script></body></html>";
 
 // ---- HTTP server (lwIP raw TCP API) ---------------------------------------------
@@ -152,7 +206,7 @@ typedef struct {
     size_t      head_len, head_sent;
     const char *body;
     size_t      body_len, body_sent;
-    char        json[1024];
+    char        json[1536];
 } http_conn_t;
 
 static size_t state_json(char *out, size_t cap) {
@@ -169,8 +223,12 @@ static size_t state_json(char *out, size_t cap) {
     }
     if (n < cap) {
         n += (size_t)snprintf(out + n, cap - n,
-                "],\"motor\":%d,\"moving\":%s,\"nudge\":%d,\"gripper_step\":%d}",
-                motor_get(), moving ? "true" : "false", NUDGE_DEG, GRIPPER_STEP);
+                "],\"motor\":%d,\"moving\":%s,\"nudge\":%d,\"gripper_step\":%d,"
+                "\"fsr\":{\"units\":%u,\"raw\":%u,\"zone_lo\":%d,\"zone_hi\":%d,\"safety\":%d,\"scale\":%d},"
+                "\"mic\":{\"ok\":%s,\"level\":%lu,\"quiet\":%u,\"loud\":%u}}",
+                motor_get(), moving ? "true" : "false", NUDGE_DEG, GRIPPER_STEP,
+                (unsigned)fsr_units, (unsigned)fsr_raw, FSR_ZONE_LO, FSR_ZONE_HI, FSR_SAFETY, FSR_BAR_MAX,
+                mic_ok ? "true" : "false", (unsigned long)mic_level, MIC_QUIET, MIC_LOUD);
     }
     return n < cap ? n : cap - 1;
 }
@@ -470,6 +528,7 @@ int main(void) {
     stdio_init_all();
 
     motor_init(PIN_MOTOR_IN1, PIN_MOTOR_IN2, PIN_MOTOR_ENA);   // motor off first
+    fsr_init(PIN_FSR_ADC);
     for (int i = 0; i < NUM_JOINTS; i++) {
         servo_init(&servos[i], joints[i].pin, joints[i].lo, joints[i].hi);   // silent
     }
@@ -487,6 +546,9 @@ int main(void) {
         target[i] = servo_read(&servos[i]);
         sleep_ms(HOME_GAP_MS);
     }
+
+    mic_ok = mic_init(PIN_MIC_SCK, PIN_MIC_WS, PIN_MIC_SD);
+    printf("Mic: %s\n", mic_ok ? "I2S receiver running" : "INIT FAILED (check pins)");
 
     if (cyw43_arch_init()) {
         printf("Wi-Fi chip failed to start\n");
@@ -509,6 +571,8 @@ int main(void) {
     absolute_time_t next_step = make_timeout_time_ms(STEP_MS);
     absolute_time_t next_ip_print = get_absolute_time();
     absolute_time_t motor_stop_at = nil_time;
+    absolute_time_t next_fsr = get_absolute_time();
+    absolute_time_t next_mic = get_absolute_time();
     bool motor_timed = false;
 
     while (true) {
@@ -521,6 +585,19 @@ int main(void) {
                 printf("Open http://%s\n", ip4addr_ntoa(netif_ip4_addr(net)));
             }
             next_ip_print = make_timeout_time_ms(10000);
+        }
+
+        // Sample the FSR for the page's pressure indicator
+        if (time_reached(next_fsr)) {
+            next_fsr = make_timeout_time_ms(FSR_READ_MS);
+            fsr_raw = fsr_read_raw();
+            fsr_units = fsr_read_units();
+        }
+
+        // Measure mic loudness for the page's sound meter (10 ms burst)
+        if (mic_ok && time_reached(next_mic)) {
+            next_mic = make_timeout_time_ms(MIC_READ_MS);
+            mic_level = mic_read_level(MIC_BURST);
         }
 
         // Reward motor commands from the page
