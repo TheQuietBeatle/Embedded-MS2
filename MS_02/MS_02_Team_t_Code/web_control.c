@@ -8,7 +8,8 @@
 //              The address is printed over USB serial; the onboard LED turns on
 //              once the network is up.
 //   Web page : live grip-pressure indicator (FSR) with the hold zone and safety
-//              limit marked, mic test (sound level meter with peak marker), slider + buttons per joint, gripper Open / Close-step,
+//              limit marked, mic test (sound level meter with peak marker) and
+//              3 s audio recording (play in the page or download as .wav), slider + buttons per joint, gripper Open / Close-step,
 //              Home all, reward motor Forward / Reverse / Stop.
 //   Motion   : non-blocking, at most STEP_DEG every STEP_MS, and only ONE joint moves
 //              at a time so a 5 V 2 A adapter is not overloaded.
@@ -64,6 +65,12 @@
 #define MIC_BURST        160u      // samples per measurement = 10 ms at 16 kHz (keeps servos smooth)
 #define MIC_QUIET        500u      // level shown as an empty bar   (tune from what the page shows)
 #define MIC_LOUD         60000u    // level shown as a full bar
+
+// Audio recording (kept in RAM, served to the page as a .wav file)
+#define REC_SECONDS      3u        // RAM limit: 3 s x 16 kHz x 2 bytes = 96 KB
+#define REC_SAMPLES      (REC_SECONDS * MIC_SAMPLE_RATE_HZ)
+#define REC_GAIN_SHIFT   4         // 24-bit mic -> 16-bit WAV: >>8 is 1x, >>4 is 16x louder
+#define WAV_HEADER_LEN   44u
 #define HTTP_PORT        80
 #define WIFI_JOIN_ATTEMPTS 2       // WPA2 + WPA2/WPA3, ~40 s, then own network
 
@@ -111,6 +118,12 @@ static volatile uint16_t fsr_raw;
 static bool              mic_ok;
 static volatile uint32_t mic_level;
 
+// Recording: the main loop records when asked; /audio.wav serves the result.
+enum { REC_IDLE, REC_REQUESTED, REC_RECORDING, REC_READY };
+static volatile int rec_state = REC_IDLE;
+static volatile uint32_t rec_id;                     // changes per recording (cache-buster)
+static uint8_t wav[WAV_HEADER_LEN + REC_SAMPLES * 2]; // header + 16-bit mono samples
+
 static float clampf(float v, float lo, float hi) {
     return v < lo ? lo : (v > hi ? hi : v);
 }
@@ -156,7 +169,11 @@ static const char PAGE[] =
 "<div class=\"card\"><div class=\"row\"><span class=\"lbl\">Mic test (INMP441)</span>"
 "<span class=\"ang\" id=\"mic\">--</span></div>"
 "<div class=\"bar\"><div id=\"micbar\" class=\"fill\"></div><div id=\"micpk\" class=\"peak\"></div></div>"
-"<div class=\"row\"><span id=\"micst\" class=\"st\">--</span><span class=\"meta\">talk or clap near the mic</span></div></div>"
+"<div class=\"row\"><span id=\"micst\" class=\"st\">--</span><span class=\"meta\">talk or clap near the mic</span></div>"
+"<div class=\"btns\"><button id=\"recbtn\" onclick=\"go('/record')\">&#9679; Record</button></div>"
+"<div id=\"recst\" class=\"meta\" style=\"margin-top:8px\"></div>"
+"<audio id=\"player\" controls style=\"width:100%;margin-top:8px;display:none\"></audio>"
+"<a id=\"dl\" download=\"recording.wav\" style=\"display:none;color:#4f9cff\">Download recording.wav</a></div>"
 "<div id=\"joints\"></div>"
 "<div class=\"btns\" style=\"margin-bottom:10px\"><button onclick=\"go('/home')\">Home all (90&deg;)</button></div>"
 "<div class=\"card\"><div class=\"row\"><span class=\"lbl\">Reward motor (L298N)</span>"
@@ -178,7 +195,12 @@ static const char PAGE[] =
 "'</div></div>'}$('joints').innerHTML=h;built=true}"
 "function show(d){if(!built)build(d);for(const s of d.servos){$('v_'+s.key).textContent=s.angle;"
 "if(drag!==s.key)$('s_'+s.key).value=s.target}$('mot').textContent=d.motor;"
-"$('msg').textContent=d.moving?'moving...':'connected';if(d.fsr)fsr(d.fsr);if(d.mic)mic(d.mic)}"
+"$('msg').textContent=d.moving?'moving...':'connected';if(d.fsr)fsr(d.fsr);if(d.mic)mic(d.mic);if(d.rec)rec(d.rec)}"
+"let lastRec=-1;function rec(r){const b=$('recbtn');b.textContent=r.state==='recording'?'Recording...':'\\u25CF Record '+r.secs+' s';"
+"b.disabled=r.state==='recording';"
+"$('recst').textContent=r.state==='recording'?'Recording - the arm pauses for '+r.secs+' s':r.state==='ready'?'Recording ready':'';"
+"if(r.state==='ready'&&r.id!==lastRec){lastRec=r.id;const u='/audio.wav?id='+r.id;"
+"$('player').src=u;$('player').style.display='block';$('dl').href=u;$('dl').style.display='inline-block'}}"
 "let pk=0;function mic(m){if(!m.ok){$('mic').textContent='--';$('micst').textContent='Mic not detected - check wiring';"
 "$('micst').style.color='#ff5d5d';return}"
 "const r=Math.log10(Math.max(m.level,m.quiet)/m.quiet)/Math.log10(m.loud/m.quiet),p=Math.min(1,Math.max(0,r))*100;"
@@ -225,10 +247,14 @@ static size_t state_json(char *out, size_t cap) {
         n += (size_t)snprintf(out + n, cap - n,
                 "],\"motor\":%d,\"moving\":%s,\"nudge\":%d,\"gripper_step\":%d,"
                 "\"fsr\":{\"units\":%u,\"raw\":%u,\"zone_lo\":%d,\"zone_hi\":%d,\"safety\":%d,\"scale\":%d},"
-                "\"mic\":{\"ok\":%s,\"level\":%lu,\"quiet\":%u,\"loud\":%u}}",
+                "\"mic\":{\"ok\":%s,\"level\":%lu,\"quiet\":%u,\"loud\":%u},"
+                "\"rec\":{\"state\":\"%s\",\"secs\":%u,\"id\":%lu}}",
                 motor_get(), moving ? "true" : "false", NUDGE_DEG, GRIPPER_STEP,
                 (unsigned)fsr_units, (unsigned)fsr_raw, FSR_ZONE_LO, FSR_ZONE_HI, FSR_SAFETY, FSR_BAR_MAX,
-                mic_ok ? "true" : "false", (unsigned long)mic_level, MIC_QUIET, MIC_LOUD);
+                mic_ok ? "true" : "false", (unsigned long)mic_level, MIC_QUIET, MIC_LOUD,
+                rec_state == REC_READY ? "ready" :
+                rec_state == REC_IDLE  ? "idle"  : "recording",
+                REC_SECONDS, (unsigned long)rec_id);
     }
     return n < cap ? n : cap - 1;
 }
@@ -267,6 +293,25 @@ static void handle_request(http_conn_t *c, const char *req) {
     char key[16], val[16];
     int j = (query && query_get(query, "servo", key, sizeof key)) ? joint_by_key(key) : -1;
 
+    if (strcmp(path, "/audio.wav") == 0) {
+        if (rec_state == REC_READY) {
+            c->body = (const char *)wav;
+            c->body_len = sizeof wav;
+            c->head_len = (size_t)snprintf(c->head, sizeof c->head,
+                "HTTP/1.1 200 OK\r\nContent-Type: audio/wav\r\nCache-Control: no-store\r\n"
+                "Content-Disposition: inline; filename=\"recording.wav\"\r\n"
+                "Content-Length: %u\r\nConnection: close\r\n\r\n", (unsigned)c->body_len);
+        } else {
+            static const char none[] = "no recording yet";
+            c->body = none;
+            c->body_len = sizeof none - 1;
+            c->head_len = (size_t)snprintf(c->head, sizeof c->head,
+                "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\nContent-Length: %u\r\n"
+                "Connection: close\r\n\r\n", (unsigned)c->body_len);
+        }
+        return;
+    }
+
     if (strcmp(path, "/") == 0) {
         c->body = PAGE;
         c->body_len = sizeof PAGE - 1;
@@ -280,6 +325,10 @@ static void handle_request(http_conn_t *c, const char *req) {
         set_target(j, (float)atoi(val));
     } else if (strcmp(path, "/step") == 0 && j >= 0 && query_get(query, "delta", val, sizeof val)) {
         set_target(j, target[j] + (float)atoi(val));
+    } else if (strcmp(path, "/record") == 0) {
+        if (mic_ok && (rec_state == REC_IDLE || rec_state == REC_READY)) {
+            rec_state = REC_REQUESTED;
+        }
     } else if (strcmp(path, "/home") == 0) {
         for (int i = 0; i < NUM_JOINTS; i++) set_target(i, HOME_ANGLE);
     } else if (strcmp(path, "/motor") == 0 && query && query_get(query, "speed", val, sizeof val)) {
@@ -389,7 +438,12 @@ static void on_err(void *arg, err_t err) {
 static err_t on_poll(void *arg, struct tcp_pcb *pcb) {
     (void)pcb;
     http_conn_t *c = arg;
-    return c ? conn_close(c) : ERR_OK;    // drop connections idle for ~5 s
+    if (!c) return ERR_OK;
+    if (c->responded && !all_written(c)) {   // a long download (the .wav) is still going
+        send_more(c);
+        return ERR_OK;
+    }
+    return conn_close(c);                    // drop connections idle for ~5 s
 }
 
 static err_t on_accept(void *arg, struct tcp_pcb *pcb, err_t err) {
@@ -523,6 +577,56 @@ static struct netif *start_own_network(void) {
     return ap;
 }
 
+// ---- Audio recording --------------------------------------------------------------
+static void put_le16(uint8_t *p, uint16_t v) { p[0] = v & 0xff; p[1] = v >> 8; }
+static void put_le32(uint8_t *p, uint32_t v) { put_le16(p, v & 0xffff); put_le16(p + 2, v >> 16); }
+
+// Standard 44-byte header for 16-bit mono PCM.
+static void wav_write_header(void) {
+    const uint32_t data_len = REC_SAMPLES * 2u;
+    memcpy(wav, "RIFF", 4);
+    put_le32(wav + 4, 36u + data_len);
+    memcpy(wav + 8, "WAVEfmt ", 8);
+    put_le32(wav + 16, 16);                          // fmt chunk size
+    put_le16(wav + 20, 1);                           // PCM
+    put_le16(wav + 22, 1);                           // mono
+    put_le32(wav + 24, MIC_SAMPLE_RATE_HZ);
+    put_le32(wav + 28, MIC_SAMPLE_RATE_HZ * 2u);     // bytes per second
+    put_le16(wav + 32, 2);                           // bytes per sample frame
+    put_le16(wav + 34, 16);                          // bits per sample
+    memcpy(wav + 36, "data", 4);
+    put_le32(wav + 40, data_len);
+}
+
+// Blocking: records REC_SECONDS of audio into wav[]. Servos pause meanwhile.
+static void record_audio(void) {
+    rec_state = REC_RECORDING;
+    printf("Recording %u s...\n", REC_SECONDS);
+    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);   // LED off while recording
+
+    for (int i = 0; i < 16; i++) {                   // drop stale samples waiting in the FIFO
+        (void)mic_read_sample();
+    }
+    int32_t dc = 0;
+    for (int i = 0; i < 256; i++) {                  // estimate the DC offset first
+        dc += (mic_read_sample() - dc) / 16;
+    }
+    int16_t *out = (int16_t *)(wav + WAV_HEADER_LEN);
+    for (uint32_t i = 0; i < REC_SAMPLES; i++) {
+        int32_t s = mic_read_sample();
+        dc += (s - dc) / 1024;                       // slow tracking keeps the audio itself
+        int32_t v = (s - dc) >> REC_GAIN_SHIFT;
+        if (v > 32767)  v = 32767;
+        if (v < -32768) v = -32768;
+        out[i] = (int16_t)v;
+    }
+    wav_write_header();
+    rec_id++;
+    rec_state = REC_READY;
+    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
+    printf("Recording ready: http://<pico>/audio.wav\n");
+}
+
 // ---- Main -----------------------------------------------------------------------
 int main(void) {
     stdio_init_all();
@@ -592,6 +696,12 @@ int main(void) {
             next_fsr = make_timeout_time_ms(FSR_READ_MS);
             fsr_raw = fsr_read_raw();
             fsr_units = fsr_read_units();
+        }
+
+        // Record when the page asked for it
+        if (rec_state == REC_REQUESTED) {
+            record_audio();
+            next_step = make_timeout_time_ms(STEP_MS);
         }
 
         // Measure mic loudness for the page's sound meter (10 ms burst)
