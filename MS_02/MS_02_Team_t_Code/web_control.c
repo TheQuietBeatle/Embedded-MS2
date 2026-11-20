@@ -368,9 +368,18 @@ static const char *auth_name(uint8_t auth) {
     return "WEP";
 }
 
+typedef struct {
+    int  count;
+    bool found;      // our WIFI_SSID was seen
+} scan_summary_t;
+
 static int scan_result(void *env, const cyw43_ev_scan_result_t *r) {
-    (void)env;
+    scan_summary_t *sum = env;
     if (r && r->ssid_len > 0) {
+        sum->count++;
+        if (r->ssid_len == strlen(WIFI_SSID) && memcmp(r->ssid, WIFI_SSID, r->ssid_len) == 0) {
+            sum->found = true;
+        }
         printf("    %-32.*s  ch %2u  %4d dBm  %s\n", r->ssid_len, (const char *)r->ssid,
                r->channel, r->rssi, auth_name(r->auth_mode));
     }
@@ -378,28 +387,38 @@ static int scan_result(void *env, const cyw43_ev_scan_result_t *r) {
 }
 
 // Print the 2.4 GHz networks the Pico W can see (it cannot see 5 GHz at all).
+// Runs once at start-up, before any join attempt (a scan during a join stalls).
 static void wifi_scan_print(void) {
+    static scan_summary_t sum;
     cyw43_wifi_scan_options_t opts = {0};
-    printf("  Networks the Pico can see (duplicates are normal):\n");
+    printf("Scanning for Wi-Fi networks (duplicates are normal):\n");
     cyw43_arch_lwip_begin();
-    int err = cyw43_wifi_scan(&cyw43_state, &opts, NULL, scan_result);
+    int err = cyw43_wifi_scan(&cyw43_state, &opts, &sum, scan_result);
     cyw43_arch_lwip_end();
     if (err != 0) {
-        printf("    scan failed (%d)\n", err);
+        printf("    scan could not start (%d) - continuing\n", err);
         return;
     }
-    while (cyw43_wifi_scan_active(&cyw43_state)) {
+    absolute_time_t give_up = make_timeout_time_ms(10000);
+    while (cyw43_wifi_scan_active(&cyw43_state) && !time_reached(give_up)) {
         sleep_ms(100);
     }
-    printf("  If \"%s\" is not listed: wrong name, 5 GHz only, or too far away.\n", WIFI_SSID);
+    printf("  %d networks seen.\n", sum.count);
+    if (sum.found) {
+        printf("  \"%s\" is visible - if joining fails, check the password.\n", WIFI_SSID);
+    } else {
+        printf("  \"%s\" was NOT seen: check the exact name (capitals, spaces, apostrophes),\n"
+               "  switch the hotspot to 2.4 GHz (iPhone: Maximize Compatibility), or move closer.\n",
+               WIFI_SSID);
+    }
 }
 
 // Keep trying until connected: WPA2 first, then WPA2/WPA3 (for WPA3 phone hotspots).
 static void wifi_connect(void) {
     static const uint32_t auth_modes[] = { CYW43_AUTH_WPA2_AES_PSK, CYW43_AUTH_WPA3_WPA2_AES_PSK };
     static const char *auth_names[]    = { "WPA2", "WPA2/WPA3" };
-    bool scanned = false;
 
+    wifi_scan_print();
     printf("Connecting to Wi-Fi \"%s\"...\n", WIFI_SSID);
     for (int attempt = 0; ; attempt++) {
         int m = attempt % 2;
@@ -408,11 +427,7 @@ static void wifi_connect(void) {
             printf("Connected (%s).\n", auth_names[m]);
             return;
         }
-        printf("  %s attempt failed: %s (%d)\n", auth_names[m], wifi_error_text(err), err);
-        if (!scanned) {
-            wifi_scan_print();
-            scanned = true;
-        }
+        printf("  %s attempt failed: %s (%d). Retrying...\n", auth_names[m], wifi_error_text(err), err);
     }
 }
 
@@ -425,7 +440,11 @@ int main(void) {
         servo_init(&servos[i], joints[i].pin, joints[i].lo, joints[i].hi);   // silent
     }
 
-    sleep_ms(2000);   // time to open the serial monitor
+    // Wait up to 10 s for the serial monitor so the Wi-Fi scan below isn't missed.
+    for (int i = 0; i < 100 && !stdio_usb_connected(); i++) {
+        sleep_ms(100);
+    }
+    sleep_ms(500);
     printf("\n=== Neural Calibrator - web control ===\n");
 
     for (int i = 0; i < NUM_JOINTS; i++) {   // home one joint at a time
