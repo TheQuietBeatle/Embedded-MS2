@@ -1,0 +1,14 @@
+{
+    "cmake.configureOnOpen": false,
+    "cmake.automaticReconfigure": false,
+    "cmake.configureOnEdit": false,
+    "cmake.statusbar.visibility": "hidden",
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+    "clangd.arguments": [
+        "--compile-commands-dir=${workspaceFolder}/build",
+        "--query-driver=**/arm-none-eabi-gcc*"
+    ],
+    "files.associations": {
+        "*.pio": "pio"
+    }
+}
