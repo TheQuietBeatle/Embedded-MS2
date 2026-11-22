@@ -6,7 +6,7 @@
 #define PIN_SERVO_WAIST           0u  // GP0 -> S1.SIG
 #define PIN_SERVO_SHOULDER        1u  // GP1 -> S2.SIG
 #define PIN_SERVO_ELBOW           4u  // GP4 -> S3.SIG
-#define PIN_SERVO_WRIST_PITCH     5u  // GP5 -> S4.SIG
+#define PIN_SERVO_WRIST_ROLL      5u  // GP5 -> S4.SIG (wrist ROLL servo now plugged here; was wrist pitch)
 
 #define PIN_LED_R                 6u  // GP6 -> R2.1
 #define PIN_LED_G                 7u  // GP7 -> R3.1
@@ -16,7 +16,7 @@
 #define PIN_MIC_WS               11u  // GP11 -> MIC1.WS
 #define PIN_MIC_SD               12u  // GP12 -> MIC1.SD
 
-#define PIN_SERVO_WRIST_ROLL     14u  // GP14 -> S5.SIG
+#define PIN_SERVO_WRIST_PITCH    14u  // GP14 -> S5.SIG (wrist PITCH servo now plugged here; was wrist roll)
 #define PIN_SERVO_GRIPPER        15u  // GP15 -> S6.SIG
 
 #define PIN_MOTOR_IN1            16u  // GP16 -> U1.IN1

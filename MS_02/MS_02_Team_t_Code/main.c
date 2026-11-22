@@ -25,8 +25,8 @@
 #define HOME_GAP_MS     400u     // pause between homing one joint and the next
 #define JOINT_MIN       5.0f     // waist / shoulder / elbow / wrist limits
 #define JOINT_MAX       175.0f
-#define GRIPPER_OPEN    0.0f     // gripper limits (0 = open)
-#define GRIPPER_CLOSED  120.0f
+#define GRIPPER_CLOSED  0.0f     // gripper limits (0 = closed on this arm)
+#define GRIPPER_OPEN    120.0f
 #define SWEEP_SPAN      30.0f    // test sweep: 90 -> 90-span -> 90+span -> 90
 #define STEP_DEG        2.0f     // at most 2 deg ...
 #define STEP_MS         20u      // ... every 20 ms
@@ -51,7 +51,7 @@ static void servos_init(void) {
     servo_init(&servos[ELBOW],       PIN_SERVO_ELBOW,       JOINT_MIN, JOINT_MAX);
     servo_init(&servos[WRIST_PITCH], PIN_SERVO_WRIST_PITCH, JOINT_MIN, JOINT_MAX);
     servo_init(&servos[WRIST_ROLL],  PIN_SERVO_WRIST_ROLL,  JOINT_MIN, JOINT_MAX);
-    servo_init(&servos[GRIPPER],     PIN_SERVO_GRIPPER,     GRIPPER_OPEN, GRIPPER_CLOSED);
+    servo_init(&servos[GRIPPER],     PIN_SERVO_GRIPPER,     GRIPPER_CLOSED, GRIPPER_OPEN);
 }
 
 static void test_servos(void) {
