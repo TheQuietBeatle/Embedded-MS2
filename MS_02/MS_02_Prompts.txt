@@ -1,0 +1,100 @@
+CSEN701 Embedded Systems Architecture - Milestone 2
+Team 33 - The Neural Calibrator (Theme 2: Robotic Arm, Raspberry Pi Pico W)
+Prompts used during coding and debugging (AI tool: Claude)
+=====================================================================
+
+--- 1. Hardware wiring and pin map ---
+
+1.1  Build the wiring package for the Neural Calibrator arm on the Pico W:
+     6 servos (waist, shoulder, elbow, wrist pitch, wrist roll, gripper),
+     INMP441 I2S microphone, FSR 402 force sensor, RGB LED and a DC motor
+     through an L298N driver. Give me a parts list, a wiring diagram,
+     a numbered wiring table and a pins file.
+
+1.2  Write a prompt for Schematik that locks these exact pins. It must stay
+     hardware-only: no Arduino firmware and no Deploy, because the course
+     requires native Pico SDK code.
+
+1.3  The servos are powered from a separate 5V 3A adapter. Check that the
+     wiring has a common ground and does not power the servos from the Pico.
+
+--- 2. Drivers (.h/.c pairs) and test code ---
+
+2.1  Where are the drivers? Write a driver (.h and .c file pair) in C for the
+     Pico SDK for every sensor and actuator in the project, as the MS2
+     description asks: servo, FSR, RGB LED, L298N motor and INMP441 mic.
+
+2.2  Write a main.c test program that:
+     - homes each servo to 90 degrees one at a time, then sweeps each joint
+       to show the full range (gripper 0 to 120 degrees);
+     - cycles the RGB LED through colours and fades it;
+     - ramps the DC motor forward, then reverse, then brakes;
+     - verifies the sensors with the LED: FSR force -> green brightness,
+       mic loudness -> red brightness, and prints both over USB serial.
+
+2.3  Write the CMakeLists.txt for this folder so it builds with the Pico SDK,
+     including the PIO program for the I2S microphone.
+
+2.4  Convert the generated pins.py into a C pins.h with #define constants.
+
+2.5  Add a grip-pressure indicator and a mic test to the control web page.
+
+2.6  Record 3 seconds of audio from the mic and serve it as a WAV file
+     from the Pico W web page.
+
+--- 3. Debugging ---
+
+3.1  Task 'Compile Project' not found.
+     (VS Code Pico extension - missing .vscode/tasks.json)
+
+3.2  VS Code shows red errors in every file even though the code should
+     build. [pasted the VS Code problems list]
+
+3.3  'i2s_in.pio.h' file not found / Use of undeclared identifier
+     'i2s_in_program' in mic.c. [pasted the VS Code problems list]
+
+3.4  clangd says "Included header stdlib.h is not used directly" in
+     main.c, motor.c and rgb_led.c. Is this a real problem?
+
+3.5  ImportError: can't import name PIN_ELBOW
+     (early MicroPython test of the elbow and gripper servos)
+
+3.6  The INMP441 mic does not output anything. What should I check
+     in the wiring and the code?
+
+--- 4. Stateflow model (MS_02_Team_33_Diagram.slx) ---
+
+4.1  Is there something wrong with it? [attached build_neural_calibrator.m,
+     the MATLAB script that builds the Stateflow chart]
+
+4.2  Prompt to fix the issues.
+     Resulting prompt given to the model:
+
+     You are editing a MATLAB script, build_neural_calibrator.m (attached),
+     that builds a Stateflow model MS_02_Team_33_Diagram.slx for a university
+     Embedded Systems project (CSEN701 Milestone 2). The chart must clearly
+     demonstrate hierarchy, orthogonality (parallel regions), concurrency and
+     event broadcasting. The script already builds and simulates without
+     errors - keep its structure, helper functions, region layout, state
+     positions, port order and test harness unless a fix below requires a
+     change. Apply exactly these fixes:
+       1. Single owner for `led`: remove every `led` assignment from the
+          ForceMonitor region; Game keeps controlling the LED.
+       2. Missed IN_ZONE: add a Searching -> Steady transition guarded by
+          [in(ForceMonitor.InZone)].
+       3. Let OverForce return to OutZone when the force drops below 400.
+       4. Restore the gripper step on entry to Closing so it can close again
+          after Holding.
+       5. Clamp the servo value to 180.
+       6. Make UNLOCK received by the Gripper region (Locked/Ready layer).
+       7. Add the missing InZone -> OverForce transition.
+       8. Rename `step` to `closeStep` (it shadows a MATLAB built-in) and
+          keep it owned by one region.
+       9. Add a second test run for the fail path
+          (OVERFORCE -> Lose -> RESET).
+     Output the complete updated script, then one line per fix.
+
+--- 5. Video ---
+
+5.1  Give me all the requirements for the MS2 video.
+5.2  Write me a voice-over script. Write it in short sentences.
