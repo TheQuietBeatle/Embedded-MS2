@@ -1,5 +1,5 @@
 CSEN701 Embedded Systems Architecture - Milestone 2
-Team 33 - The Neural Calibrator (Theme 2: Robotic Arm, Raspberry Pi Pico W)
+Team 32 - The Neural Calibrator (Theme 2: Robotic Arm, Raspberry Pi Pico W)
 Prompts used during coding and debugging (AI tool: Claude)
 =====================================================================
 
@@ -62,7 +62,7 @@ Prompts used during coding and debugging (AI tool: Claude)
 3.6  The INMP441 mic does not output anything. What should I check
      in the wiring and the code?
 
---- 4. Stateflow model (MS_02_Team_33_Diagram.slx) ---
+--- 4. Stateflow model (MS_02_Team_32_Diagram.slx) ---
 
 4.1  Is there something wrong with it? [attached build_neural_calibrator.m,
      the MATLAB script that builds the Stateflow chart]
@@ -71,7 +71,7 @@ Prompts used during coding and debugging (AI tool: Claude)
      Resulting prompt given to the model:
 
      You are editing a MATLAB script, build_neural_calibrator.m (attached),
-     that builds a Stateflow model MS_02_Team_33_Diagram.slx for a university
+     that builds a Stateflow model MS_02_Team_32_Diagram.slx for a university
      Embedded Systems project (CSEN701 Milestone 2). The chart must clearly
      demonstrate hierarchy, orthogonality (parallel regions), concurrency and
      event broadcasting. The script already builds and simulates without
