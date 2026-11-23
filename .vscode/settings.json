@@ -1,3 +1,9 @@
 {
-    "cmake.sourceDirectory": "D:/embedded/New folder/MS_02/MS_02_Team_t_Code"
+    "cmake.sourceDirectory": "D:/embedded/New folder/MS_02/MS_02_Team_32_Code",
+    "cmake.buildDirectory": "D:/embedded/New folder/MS_02/MS_02_Team_32_Code/build",
+    "C_Cpp.default.compileCommands": "D:/embedded/New folder/MS_02/MS_02_Team_32_Code/build/compile_commands.json",
+    "clangd.arguments": [
+        "--compile-commands-dir=D:/embedded/New folder/MS_02/MS_02_Team_32_Code/build",
+        "--query-driver=**/arm-none-eabi-gcc*"
+    ]
 }

@@ -47,17 +47,7 @@
 #define JOINT_MAX        175.0f    // Highest angle a normal joint may go to
 #define GRIPPER_CLOSED   0.0f      // Gripper angle when fully closed (on this arm a LOWER angle closes)
 #define GRIPPER_OPEN     120.0f    // Gripper angle when fully open
-#define GRIPPER_STEP     10        // "Close step" / "Open step" size, in estimated gripper degrees
-
-// The gripper (GP15) is a 360-degree continuous MG90S: the pulse sets SPEED, not angle.
-// The code keeps an ESTIMATED position (0 = closed .. 120 = open) from how long it spun,
-// stops the servo at the target, and stops closing as soon as the FSR feels a grip.
-// Stop trim, direction and full-travel time can be tuned live from the web page.
-#define GRIP_STOP_US     1500      // pulse that makes the servo stand still (trim on the page)
-#define GRIP_SPEED_US    150       // how far from stop the pulse goes while moving (bigger = faster)
-#define GRIP_FULL_MS     800u      // time to spin from fully open to fully closed (tune on the page)
-#define GRIP_TRIM_STEP   5         // us per Trim -/+ press
-#define GRIP_TIME_STEP   100       // ms per Time -/+ press
+#define GRIPPER_STEP     2         // Degrees the "Close step" / "Open step" buttons move the gripper by
 #define NUDGE_DEG        5         // Degrees the -/+ buttons move a joint by
 #define STEP_DEG         2.0f      // Biggest move a servo makes in one motion tick (smooth, slow motion)
 #define STEP_MS          20u       // Time between motion ticks (2 deg / 20 ms = 100 deg per second)
@@ -110,9 +100,9 @@ static const joint_info_t joints[NUM_JOINTS] = {                                
     {"waist",       "Waist (MG996R, GP0)",      PIN_SERVO_WAIST,       JOINT_MIN,    JOINT_MAX,       "&larr; Left", "Right &rarr;"}, // base rotation
     {"shoulder",    "Shoulder (MG996R, GP1)",   PIN_SERVO_SHOULDER,    JOINT_MIN,    JOINT_MAX,       "&darr; Down", "Up &uarr;"},    // shoulder lift
     {"elbow",       "Elbow (MG996R, GP4)",      PIN_SERVO_ELBOW,       JOINT_MIN,    JOINT_MAX,       "Up &uarr;", "&darr; Down"},    // elbow bend (smaller angle raises the arm)
-    {"wrist_pitch", "Wrist pitch (MG90S, GP14)", PIN_SERVO_WRIST_PITCH, JOINT_MIN,    JOINT_MAX,       "&darr; Down", "Up &uarr;"},    // wrist up/down
+    {"wrist_pitch", "Wrist pitch (SG90, GP14)", PIN_SERVO_WRIST_PITCH, JOINT_MIN,    JOINT_MAX,       "&darr; Down", "Up &uarr;"},    // wrist up/down
     {"wrist_roll",  "Wrist roll (SG90, GP5)",  PIN_SERVO_WRIST_ROLL,  JOINT_MIN,    JOINT_MAX,       "&#8634; Left", "Right &#8635;"}, // wrist twist (curved arrows)
-    {"gripper",     "Gripper (MG90S 360, GP15)",   PIN_SERVO_GRIPPER,     GRIPPER_CLOSED, GRIPPER_OPEN,  "Close", "Open"},        // gripper range: lo = closed, hi = open (has its own buttons)
+    {"gripper",     "Gripper (SG90, GP15)",     PIN_SERVO_GRIPPER,     GRIPPER_CLOSED, GRIPPER_OPEN,  "Close", "Open"},        // gripper range: lo = closed, hi = open (has its own buttons)
 };                                                                                                         // end of joint table
 
 static servo_t        servos[NUM_JOINTS];     // live state of each servo (driver data, current angle)
@@ -151,38 +141,6 @@ static int joint_by_key(const char *key) {            // find a joint's number f
 static void set_target(int j, float deg) {            // ask joint j to move to deg (main loop does the moving)
     target[j] = clampf(deg, joints[j].lo, joints[j].hi);   // store it, clamped to the joint's safe range
 }                                                     // end of set_target
-
-// ---- Continuous (360-degree) gripper ----------------------------------------------
-static volatile int      grip_stop_us = GRIP_STOP_US; // live stop pulse (trim)
-static volatile bool     grip_flip;                   // true = swap which spin direction closes
-static volatile uint32_t grip_full_ms = GRIP_FULL_MS; // live full-travel time
-
-// Called every STEP_MS: spins the gripper toward its target and updates the estimate.
-static void gripper_tick(void) {
-    servo_t *g = &servos[GRIPPER];
-    float est = g->angle;                             // estimated position (deg-like units)
-    float tgt = target[GRIPPER];
-    if (tgt < est && fsr_units >= FSR_ZONE_LO) {      // closing and the FSR feels the object
-        target[GRIPPER] = tgt = est;                  // stop here = hold the grip
-    }
-    float per_tick = (joints[GRIPPER].hi - joints[GRIPPER].lo) * (float)STEP_MS / (float)grip_full_ms;
-    int dir = 0;                                      // +1 = opening, -1 = closing, 0 = stopped
-    if (tgt > est) {
-        dir = 1;
-        est = (tgt - est > per_tick) ? est + per_tick : tgt;
-    } else if (tgt < est) {
-        dir = -1;
-        est = (est - tgt > per_tick) ? est - per_tick : tgt;
-    }
-    g->angle = est;
-    int sign = grip_flip ? -1 : 1;                    // which pulse side opens
-    servo_write_us(g, (uint16_t)(grip_stop_us + dir * sign * GRIP_SPEED_US));
-}
-
-static void gripper_stop_now(void) {                  // stop spinning, keep the estimate
-    target[GRIPPER] = servos[GRIPPER].angle;
-    servo_write_us(&servos[GRIPPER], (uint16_t)grip_stop_us);
-}
 
 // ---- Web page -----------------------------------------------------------------
 // The whole page (HTML + CSS + JavaScript) is one C string stored in flash.
@@ -307,15 +265,7 @@ static const char PAGE[] =
                         "?btn('Open','/set?servo=gripper&angle='+s.hi)"                                       // Open   = jump to the high angle
                         "+btn('Open step','/step?servo=gripper&delta='+d.gripper_step)"                       // Open step  = a few degrees UP                        
                         "+btn('Close step','/step?servo=gripper&delta=-'+d.gripper_step)"                     // Close step = a few degrees DOWN
-                        "+btn('Closed','/set?servo=gripper&angle='+s.lo)"                                     // Closed = spin shut (stops early on FSR grip)
-                        "+'</div><div class=\"btns\">'"                                                         // 360-servo tuning row:
-                        "+btn('Stop','/grip?stop=1')"                                                         // stop spinning now
-                        "+btn('Set as open','/grip?zero=1')"                                                  // tell the estimate it is fully open now
-                        "+btn('Flip dir','/grip?flip=1')"                                                     // swap open/close spin direction
-                        "+'</div><div class=\"btns\">'"
-                        "+btn('Trim -','/grip?trim=-'+d.grip.tstep)+btn('Trim +','/grip?trim='+d.grip.tstep)"  // stop-pulse trim
-                        "+btn('Time -','/grip?time=-'+d.grip.mstep)+btn('Time +','/grip?time='+d.grip.mstep)"  // full-travel time
-                        "+'</div><div class=\"meta\" id=\"gmeta\"></div><div>'"                               // live tuning values
+                        "+btn('Closed','/set?servo=gripper&angle='+s.lo)"                                     // Closed = jump to the low angle
                         ":btn(s.dn,'/step?servo='+k+'&delta=-'+d.nudge)"                                      // others: e.g. "<- Left" = 5 deg smaller
                         "+btn('90&deg;','/set?servo='+k+'&angle=90')"                                         // centre
                         "+btn(s.up,'/step?servo='+k+'&delta='+d.nudge))+"                                     // e.g. "Right ->" = 5 deg bigger
@@ -332,7 +282,6 @@ static const char PAGE[] =
                     "$('v_'+s.key).textContent=s.angle;"                          // show the current angle
                     "if(drag!==s.key)$('s_'+s.key).value=s.target"                // move the slider (unless you're dragging it)
                 "}"
-                "if(d.grip)$('gmeta').textContent='360 servo - stop pulse '+d.grip.stop+' us, full travel '+d.grip.time+' ms'+(d.grip.flip?', flipped':'')+'. Trim until it stands still.';"
                 "$('mot').textContent=d.motor;"                                   // motor speed
                 "$('msg').textContent=d.moving?'moving...':'connected';"          // status line
                 "if(d.fsr)fsr(d.fsr);"                                            // update the FSR card
@@ -421,7 +370,7 @@ typedef struct {                       // everything we keep for ONE browser con
     size_t      head_len, head_sent;   // header length / how much of it is already sent
     const char *body;                  // points at the response body (page, JSON or WAV)
     size_t      body_len, body_sent;   // body length / how much of it is already sent
-    char        json[2048];            // buffer where the state JSON is written
+    char        json[1536];            // buffer where the state JSON is written
 } http_conn_t;                         // name of the struct type
 
 static size_t state_json(char *out, size_t cap) {      // write the arm's full state as JSON; returns its length
@@ -439,12 +388,10 @@ static size_t state_json(char *out, size_t cap) {      // write the arm's full s
     if (n < cap) {                                     // only if there is still room in the buffer
         n += (size_t)snprintf(out + n, cap - n,        // append everything else:
                 "],\"motor\":%d,\"moving\":%s,\"nudge\":%d,\"gripper_step\":%d,"                           // motor speed, moving flag, button step sizes
-                "\"grip\":{\"stop\":%d,\"time\":%lu,\"flip\":%s,\"tstep\":%d,\"mstep\":%d},"                 // 360-gripper tuning
                 "\"fsr\":{\"units\":%u,\"raw\":%u,\"zone_lo\":%d,\"zone_hi\":%d,\"safety\":%d,\"scale\":%d},"  // FSR reading and its markers
                 "\"mic\":{\"ok\":%s,\"level\":%lu,\"quiet\":%u,\"loud\":%u},"                                // mic status, level and meter range
                 "\"rec\":{\"state\":\"%s\",\"secs\":%u,\"id\":%lu}}",                                         // recording status (and close the JSON)
                 motor_get(), moving ? "true" : "false", NUDGE_DEG, GRIPPER_STEP,                              // values for the motor/moving/step fields
-                grip_stop_us, (unsigned long)grip_full_ms, grip_flip ? "true" : "false", GRIP_TRIM_STEP, GRIP_TIME_STEP, // gripper tuning values
                 (unsigned)fsr_units, (unsigned)fsr_raw, FSR_ZONE_LO, FSR_ZONE_HI, FSR_SAFETY, FSR_BAR_MAX,    // values for the fsr fields
                 mic_ok ? "true" : "false", (unsigned long)mic_level, MIC_QUIET, MIC_LOUD,                     // values for the mic fields
                 rec_state == REC_READY ? "ready" :                                                            // recording state as text:
@@ -520,21 +467,6 @@ static void handle_request(http_conn_t *c, const char *req) {   // decide what t
         set_target(j, (float)atoi(val));               // move joint X to angle N
     } else if (strcmp(path, "/step") == 0 && j >= 0 && query_get(query, "delta", val, sizeof val)) { // /step?servo=X&delta=D
         set_target(j, target[j] + (float)atoi(val));   // move joint X by D degrees from its target
-    } else if (strcmp(path, "/grip") == 0 && query) {  // /grip?stop=1 | zero=1 | flip=1 | trim=D | time=D
-        if (query_get(query, "stop", val, sizeof val)) {
-            target[GRIPPER] = servos[GRIPPER].angle;   // main loop then sends the stop pulse
-        } else if (query_get(query, "zero", val, sizeof val)) {
-            servos[GRIPPER].angle = joints[GRIPPER].hi;   // "it is fully open right now"
-            target[GRIPPER] = joints[GRIPPER].hi;
-        } else if (query_get(query, "flip", val, sizeof val)) {
-            grip_flip = !grip_flip;
-        } else if (query_get(query, "trim", val, sizeof val)) {
-            int t = grip_stop_us + atoi(val);
-            grip_stop_us = t < 1300 ? 1300 : (t > 1700 ? 1700 : t);
-        } else if (query_get(query, "time", val, sizeof val)) {
-            int t = (int)grip_full_ms + atoi(val);
-            grip_full_ms = (uint32_t)(t < 200 ? 200 : (t > 5000 ? 5000 : t));
-        }
     } else if (strcmp(path, "/record") == 0) {         // /record: start a recording
         if (mic_ok && (rec_state == REC_IDLE || rec_state == REC_READY)) {   // only if the mic works and none is in progress
             rec_state = REC_REQUESTED;                 // flag it; the main loop does the actual recording
@@ -856,8 +788,7 @@ int main(void) {                                     // program starts here
 
     for (int i = 0; i < NUM_JOINTS; i++) {   // home one joint at a time
         printf("Homing %s\n", joints[i].key);        // log which joint
-        if (i == GRIPPER) servo_write_us(&servos[i], (uint16_t)grip_stop_us);   // 360 gripper: just stand still
-        else servo_write(&servos[i], HOME_ANGLE);    // jump it to 90 deg (starts its PWM signal)
+        servo_write(&servos[i], HOME_ANGLE);         // jump it to 90 deg (starts its PWM signal)
         target[i] = servo_read(&servos[i]);          // its target = where it is now, so it stays there
         sleep_ms(HOME_GAP_MS);                       // wait before the next one (avoids a current spike)
     }                                                // end of homing loop
@@ -911,7 +842,6 @@ int main(void) {                                     // program starts here
 
         // Record when the page asked for it
         if (rec_state == REC_REQUESTED) {            // Record button was pressed
-            gripper_stop_now();                      // a 360 servo would keep spinning during the pause
             record_audio();                          // record 3 s (blocks; the arm pauses)
             next_step = make_timeout_time_ms(STEP_MS);   // restart motion timing so it doesn't jump
         }                                            // end of recording
@@ -938,9 +868,7 @@ int main(void) {                                     // program starts here
         // Move ONE joint per tick (first one that is not at its target)
         if (time_reached(next_step)) {               // time for a motion tick?
             next_step = make_timeout_time_ms(STEP_MS);   // schedule the next tick (20 ms)
-            gripper_tick();                          // 360 gripper runs every tick (its position is time-based)
             for (int i = 0; i < NUM_JOINTS; i++) {   // look through the joints in order
-                if (i == GRIPPER) continue;          // handled by gripper_tick()
                 if (servo_read(&servos[i]) != target[i]) {   // this one isn't where it should be
                     servo_step_toward(&servos[i], target[i], STEP_DEG);   // move it up to 2 deg closer
                     break;                           // only one joint per tick (protects the power supply)

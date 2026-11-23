@@ -49,13 +49,6 @@ void servo_write(servo_t *s, float deg) {
     pwm_set_chan_level(s->slice, s->channel, angle_to_us(s->angle));
 }
 
-void servo_write_us(servo_t *s, uint16_t us) {
-    if (us < SERVO_MIN_PULSE_US) us = SERVO_MIN_PULSE_US;
-    if (us > SERVO_MAX_PULSE_US) us = SERVO_MAX_PULSE_US;
-    s->active = true;
-    pwm_set_chan_level(s->slice, s->channel, us);   // 1 tick = 1 us
-}
-
 float servo_read(const servo_t *s) {
     return s->angle;
 }

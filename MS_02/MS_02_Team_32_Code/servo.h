@@ -41,11 +41,6 @@ bool  servo_step_toward(servo_t *s, float target, float max_step);
 // Blocking smooth move: step_deg every step_ms until target is reached.
 void  servo_move_smooth(servo_t *s, float target, float step_deg, uint32_t step_ms);
 
-// Send a raw pulse width in microseconds (does not change the stored angle).
-// For 360-degree continuous servos, where the pulse sets speed/direction:
-// about 1500 us = stop, above/below = spin one way/the other.
-void  servo_write_us(servo_t *s, uint16_t us);
-
 // Stop sending pulses (servo goes limp, holds no torque).
 void  servo_off(servo_t *s);
 

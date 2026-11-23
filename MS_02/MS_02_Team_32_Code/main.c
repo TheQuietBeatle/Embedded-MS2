@@ -27,9 +27,6 @@
 #define JOINT_MAX       175.0f
 #define GRIPPER_CLOSED  0.0f     // gripper limits (0 = closed on this arm)
 #define GRIPPER_OPEN    120.0f
-#define GRIP_STOP_US    1500u    // gripper is a 360 MG90S: this pulse = stand still
-#define GRIP_SPEED_US   150u     // pulse offset while spinning
-#define GRIP_SPIN_MS    400u     // test spin time each way
 #define SWEEP_SPAN      30.0f   // test sweep: 90 -> 90-span -> 90+span -> 90
 #define STEP_DEG        2.0f     // at most 2 deg ...
 #define STEP_MS         20u      // ... every 20 ms
@@ -61,8 +58,7 @@ static void test_servos(void) {
     printf("[servo] homing one joint at a time\n");
     for (int i = 0; i < NUM_SERVOS; i++) {
         printf("  %s -> %.0f deg\n", servo_name[i], HOME_ANGLE);
-        if (i == GRIPPER) servo_write_us(&servos[i], GRIP_STOP_US);   // 360 servo: stand still
-        else servo_write(&servos[i], HOME_ANGLE);
+        servo_write(&servos[i], HOME_ANGLE);
         sleep_ms(HOME_GAP_MS);
     }
 
@@ -70,13 +66,10 @@ static void test_servos(void) {
     for (int i = 0; i < NUM_SERVOS; i++) {
         servo_t *s = &servos[i];
         if (i == GRIPPER) {
-            // 360-degree MG90S: the pulse sets speed, so spin briefly each way and stop.
-            printf("  gripper (360 servo): spin one way, the other way, stop\n");
-            servo_write_us(s, GRIP_STOP_US + GRIP_SPEED_US); sleep_ms(GRIP_SPIN_MS);
-            servo_write_us(s, GRIP_STOP_US);                 sleep_ms(300);
-            servo_write_us(s, GRIP_STOP_US - GRIP_SPEED_US); sleep_ms(GRIP_SPIN_MS);
-            servo_write_us(s, GRIP_STOP_US);
-            continue;                                        // no angle to report
+            // Gripper (SG90): fully open, then closed (0 = closed on this arm).
+            printf("  gripper: open -> closed -> 90\n");
+            servo_move_smooth(s, GRIPPER_OPEN,   STEP_DEG, STEP_MS);
+            servo_move_smooth(s, GRIPPER_CLOSED, STEP_DEG, STEP_MS);
         } else {
             printf("  %s: %.0f -> %.0f -> 90\n", servo_name[i],
                    HOME_ANGLE - SWEEP_SPAN, HOME_ANGLE + SWEEP_SPAN);
