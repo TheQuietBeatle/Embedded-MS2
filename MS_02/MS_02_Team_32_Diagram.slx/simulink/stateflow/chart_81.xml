@@ -1,0 +1,1211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<chart id="81">
+  <P Name="name">NeuralCalibrator</P>
+  <P Name="screen">[1 1 3200 1200 1.25]</P>
+  <P Name="viewObj">81</P>
+  <P Name="toolbarMode">LIBRARY_TOOLBAR</P>
+  <P Name="ssIdHighWaterMark">79</P>
+  <P Name="decomposition">SET_CHART</P>
+  <P Name="authoredChartChecksum">[3344872288 2475186424 2363226577 3933001234]</P>
+  <P Name="chartFileNumber">3</P>
+  <P Name="allowGlobalAccessToExportedFunctions">0</P>
+  <P Name="saturateOnIntegerOverflow">1</P>
+  <P Name="userSpecifiedStateTransitionExecutionOrder">1</P>
+  <P Name="disableImplicitCasting">1</P>
+  <P Name="actionLanguage">2</P>
+  <Children>
+    <state SSID="20">
+      <P Name="labelString">Game</P>
+      <P Name="position">[20 20 560 480]</P>
+      <P Name="fontSize">12</P>
+      <P Name="subviewer">81</P>
+      <P Name="type">AND_STATE</P>
+      <P Name="decomposition">CLUSTER_STATE</P>
+      <P Name="executionOrder">1</P>
+      <Children>
+        <state SSID="25">
+          <P Name="labelString">Unlocked</P>
+          <P Name="position">[240 60 320 360]</P>
+          <P Name="fontSize">12</P>
+          <P Name="subviewer">81</P>
+          <P Name="type">OR_STATE</P>
+          <P Name="decomposition">CLUSTER_STATE</P>
+          <Children>
+            <state SSID="26">
+              <P Name="labelString">Approach
+entry: closeStep = 5;</P>
+              <P Name="position">[270 100 140 60]</P>
+              <P Name="fontSize">12</P>
+              <P Name="subviewer">81</P>
+              <P Name="type">OR_STATE</P>
+              <P Name="decomposition">CLUSTER_STATE</P>
+            </state>
+            <state SSID="27">
+              <P Name="labelString">Calibrate
+entry: closeStep = 1;</P>
+              <P Name="position">[260 200 280 200]</P>
+              <P Name="fontSize">12</P>
+              <P Name="subviewer">81</P>
+              <P Name="type">OR_STATE</P>
+              <P Name="decomposition">CLUSTER_STATE</P>
+              <Children>
+                <state SSID="28">
+                  <P Name="labelString">Searching
+entry: led = 0;</P>
+                  <P Name="position">[300 250 140 55]</P>
+                  <P Name="fontSize">12</P>
+                  <P Name="subviewer">81</P>
+                  <P Name="type">OR_STATE</P>
+                  <P Name="decomposition">CLUSTER_STATE</P>
+                </state>
+                <state SSID="29">
+                  <P Name="labelString">Steady
+entry: led = 2;</P>
+                  <P Name="position">[300 330 140 55]</P>
+                  <P Name="fontSize">12</P>
+                  <P Name="subviewer">81</P>
+                  <P Name="type">OR_STATE</P>
+                  <P Name="decomposition">CLUSTER_STATE</P>
+                </state>
+                <transition SSID="32">
+                  <P Name="labelPosition">[555 350 0 0]</P>
+                  <P Name="fontSize">12</P>
+                  <src>
+                    <P Name="intersection">[0 1.4142 1.4142 0 370 225 0 0]</P>
+                  </src>
+                  <dst>
+                    <P Name="SSID">28</P>
+                    <P Name="intersection">[1 0 -1 0.5 370 250 0 0]</P>
+                  </dst>
+                  <P Name="midPoint">[370 238]</P>
+                  <P Name="dataLimits">[367.6 372.4 225 250]</P>
+                  <P Name="subviewer">81</P>
+                  <slide>
+                    <P Name="mode">MIRROR_SLIDE</P>
+                    <P Name="sticky">BOTH_STICK</P>
+                  </slide>
+                  <P Name="executionOrder">1</P>
+                </transition>
+                <transition SSID="37">
+                  <P Name="labelString">[in(ForceMonitor.InZone)]</P>
+                  <P Name="labelPosition">[448 334.81 136.594 16]</P>
+                  <P Name="fontSize">12</P>
+                  <src>
+                    <P Name="SSID">28</P>
+                    <P Name="intersection">[2 1 0 0.8307 440 295.69 0 0]</P>
+                  </src>
+                  <dst>
+                    <P Name="SSID">29</P>
+                    <P Name="intersection">[2 1 0 0.1693 440 339.31 0 0]</P>
+                  </dst>
+                  <P Name="midPoint">[455.0869 317.5]</P>
+                  <P Name="dataLimits">[440 455.847 295.69 341.71]</P>
+                  <P Name="subviewer">81</P>
+                  <slide>
+                    <P Name="mode">MIRROR_SLIDE</P>
+                    <P Name="sticky">BOTH_STICK</P>
+                  </slide>
+                  <P Name="executionOrder">2</P>
+                </transition>
+                <transition SSID="38">
+                  <P Name="labelString">OUT_ZONE</P>
+                  <P Name="labelPosition">[321.455 320.828 67.297 16]</P>
+                  <P Name="fontSize">12</P>
+                  <src>
+                    <P Name="SSID">29</P>
+                    <P Name="intersection">[1 0 -1 0.1667 323.3333 330 0 0]</P>
+                  </src>
+                  <dst>
+                    <P Name="SSID">28</P>
+                    <P Name="intersection">[3 0 1 0.8333 323.3333 305 0 0]</P>
+                  </dst>
+                  <P Name="midPoint">[323.3333 321.5]</P>
+                  <P Name="dataLimits">[320.933 325.733 305 330]</P>
+                  <P Name="subviewer">81</P>
+                  <slide>
+                    <P Name="sticky">BOTH_STICK</P>
+                  </slide>
+                  <P Name="executionOrder">1</P>
+                </transition>
+                <transition SSID="36">
+                  <P Name="labelString">IN_ZONE</P>
+                  <P Name="labelPosition">[416.667 317.5 53.969 16]</P>
+                  <P Name="fontSize">12</P>
+                  <src>
+                    <P Name="SSID">28</P>
+                    <P Name="intersection">[3 0 1 0.1667 416.6667 305 0 0]</P>
+                  </src>
+                  <dst>
+                    <P Name="SSID">29</P>
+                    <P Name="intersection">[1 0 -1 0.8333 416.6667 330 0 0]</P>
+                  </dst>
+                  <P Name="midPoint">[416.6667 313.5]</P>
+                  <P Name="dataLimits">[414.267 419.067 305 330]</P>
+                  <P Name="subviewer">81</P>
+                  <slide>
+                    <P Name="sticky">BOTH_STICK</P>
+                  </slide>
+                  <P Name="executionOrder">1</P>
+                </transition>
+              </Children>
+            </state>
+            <transition SSID="31">
+              <P Name="labelPosition">[510 125 0 0]</P>
+              <P Name="fontSize">12</P>
+              <src>
+                <P Name="intersection">[0 1.4142 1.4142 0 340 75 0 0]</P>
+              </src>
+              <dst>
+                <P Name="SSID">26</P>
+                <P Name="intersection">[1 0 -1 0.5 340 100 0 0]</P>
+              </dst>
+              <P Name="midPoint">[340 88]</P>
+              <P Name="dataLimits">[337.6 342.4 75 100]</P>
+              <P Name="subviewer">81</P>
+              <slide>
+                <P Name="mode">MIRROR_SLIDE</P>
+                <P Name="sticky">BOTH_STICK</P>
+              </slide>
+              <P Name="executionOrder">1</P>
+            </transition>
+            <transition SSID="35">
+              <P Name="labelString">[contact]</P>
+              <P Name="labelPosition">[395.212 172.887 47.328 16]</P>
+              <P Name="fontSize">12</P>
+              <src>
+                <P Name="SSID">26</P>
+                <P Name="intersection">[3 0 1 0.0714 400 160 0 0]</P>
+              </src>
+              <dst>
+                <P Name="SSID">27</P>
+                <P Name="intersection">[1 0 -1 0.5 400 200 0 0]</P>
+              </dst>
+              <P Name="midPoint">[400 176]</P>
+              <P Name="dataLimits">[397.6 402.4 160 200]</P>
+              <P Name="subviewer">81</P>
+              <slide>
+                <P Name="sticky">BOTH_STICK</P>
+              </slide>
+              <P Name="executionOrder">1</P>
+            </transition>
+          </Children>
+        </state>
+        <state SSID="21">
+          <P Name="labelString">Idle
+entry: led = 1;</P>
+          <P Name="position">[50 70 140 60]</P>
+          <P Name="fontSize">12</P>
+          <P Name="subviewer">81</P>
+          <P Name="type">OR_STATE</P>
+          <P Name="decomposition">CLUSTER_STATE</P>
+        </state>
+        <state SSID="22">
+          <P Name="labelString">Riddle
+entry: led = 1;</P>
+          <P Name="position">[50 180 140 60]</P>
+          <P Name="fontSize">12</P>
+          <P Name="subviewer">81</P>
+          <P Name="type">OR_STATE</P>
+          <P Name="decomposition">CLUSTER_STATE</P>
+        </state>
+        <state SSID="23">
+          <P Name="labelString">Success
+entry: score = score + 1; led = 2;</P>
+          <P Name="position">[40 300 160 60]</P>
+          <P Name="fontSize">12</P>
+          <P Name="subviewer">81</P>
+          <P Name="type">OR_STATE</P>
+          <P Name="decomposition">CLUSTER_STATE</P>
+        </state>
+        <state SSID="24">
+          <P Name="labelString">Failure
+during: led = 4;</P>
+          <P Name="position">[40 410 160 60]</P>
+          <P Name="fontSize">12</P>
+          <P Name="subviewer">81</P>
+          <P Name="type">OR_STATE</P>
+          <P Name="decomposition">CLUSTER_STATE</P>
+        </state>
+        <transition SSID="30">
+          <P Name="labelPosition">[180 80 0 0]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="intersection">[0 1.4142 1.4142 0 120 45 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">21</P>
+            <P Name="intersection">[1 0 -1 0.5 120 70 0 0]</P>
+          </dst>
+          <P Name="midPoint">[120 58]</P>
+          <P Name="dataLimits">[117.6 122.4 45 70]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="mode">MIRROR_SLIDE</P>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">1</P>
+        </transition>
+        <transition SSID="42">
+          <P Name="labelString">RESET</P>
+          <P Name="labelPosition">[279.311 180.674 42.984 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">23</P>
+            <P Name="intersection">[2 1 0 0.3333 200 320 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">21</P>
+            <P Name="intersection">[2 1 0 0.5 190 100 0 0]</P>
+          </dst>
+          <P Name="midPoint">[254.0023 210]</P>
+          <P Name="dataLimits">[190 253.963 97.6 320]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="mode">MIRROR_SLIDE</P>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">1</P>
+        </transition>
+        <transition SSID="43">
+          <P Name="labelString">RESET</P>
+          <P Name="labelPosition">[275.589 184.321 42.984 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">24</P>
+            <P Name="intersection">[1 0 -1 0.9501 192.02 410 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">21</P>
+            <P Name="intersection">[2 1 0 0.8333 190 120 0 0]</P>
+          </dst>
+          <P Name="midPoint">[231.2677 228.7423]</P>
+          <P Name="dataLimits">[190 239.397 117.6 410]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="mode">MIRROR_SLIDE</P>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">1</P>
+        </transition>
+        <transition SSID="33">
+          <P Name="labelString">[webConnected]</P>
+          <P Name="labelPosition">[121.845 154.704 88.672 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">21</P>
+            <P Name="intersection">[3 0 1 0.5 120 130 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">22</P>
+            <P Name="intersection">[1 0 -1 0.5 120 180 0 0]</P>
+          </dst>
+          <P Name="midPoint">[120 151]</P>
+          <P Name="dataLimits">[117.6 122.4 130 180]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">1</P>
+        </transition>
+        <transition SSID="34">
+          <P Name="labelString">[voiceOK]/{send(UNLOCK);}</P>
+          <P Name="labelPosition">[212.497 224.281 152.594 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">22</P>
+            <P Name="intersection">[2 1 0 0.867 190 232.02 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">25</P>
+            <P Name="intersection">[4 -1 0 0.5 240 240 0 0]</P>
+          </dst>
+          <P Name="midPoint">[211 236.01]</P>
+          <P Name="dataLimits">[190 240 232.02 242.4]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="mode">MIRROR_SLIDE</P>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">1</P>
+        </transition>
+        <transition SSID="39">
+          <P Name="labelString">after(5,sec)/{send(WIN);}</P>
+          <P Name="labelPosition">[267.618 327.696 134.562 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">29</P>
+            <P Name="intersection">[4 -1 0 0.867 300 337.315 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">23</P>
+            <P Name="intersection">[2 1 0 0.5 200 330 0 0]</P>
+          </dst>
+          <P Name="midPoint">[254 333.6575]</P>
+          <P Name="dataLimits">[200 300 327.6 337.315]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">2</P>
+        </transition>
+        <transition SSID="41">
+          <P Name="labelString">after(30,sec)/{send(FAIL);}</P>
+          <P Name="labelPosition">[219.853 412.323 142.609 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">25</P>
+            <P Name="intersection">[3 0 1 0.9531 255 420 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">24</P>
+            <P Name="intersection">[2 1 0 0.1773 200 420.64 0 0]</P>
+          </dst>
+          <P Name="midPoint">[237.3755 426.1955]</P>
+          <P Name="dataLimits">[200 255 418.24 427.132]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="mode">MIRROR_SLIDE</P>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">2</P>
+        </transition>
+        <transition SSID="40">
+          <P Name="labelString">OVERFORCE/{send(FAIL);}</P>
+          <P Name="labelPosition">[226.03 459.55 151.266 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">25</P>
+            <P Name="intersection">[3 0 1 0.9375 260 420 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">24</P>
+            <P Name="intersection">[2 1 0 0.5 200 440 0 0]</P>
+          </dst>
+          <P Name="midPoint">[240.9642 436.9642]</P>
+          <P Name="dataLimits">[200 260 420 442.4]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="mode">MIRROR_SLIDE</P>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">1</P>
+        </transition>
+      </Children>
+    </state>
+    <state SSID="44">
+      <P Name="labelString">Gripper</P>
+      <P Name="position">[600 20 360 480]</P>
+      <P Name="fontSize">12</P>
+      <P Name="subviewer">81</P>
+      <P Name="type">AND_STATE</P>
+      <P Name="decomposition">CLUSTER_STATE</P>
+      <P Name="executionOrder">2</P>
+      <Children>
+        <state SSID="45">
+          <P Name="labelString">Locked
+entry: servo = 0;</P>
+          <P Name="position">[640 60 240 60]</P>
+          <P Name="fontSize">12</P>
+          <P Name="subviewer">81</P>
+          <P Name="type">OR_STATE</P>
+          <P Name="decomposition">CLUSTER_STATE</P>
+        </state>
+        <state SSID="46">
+          <P Name="labelString">Ready</P>
+          <P Name="position">[620 170 320 310]</P>
+          <P Name="fontSize">12</P>
+          <P Name="subviewer">81</P>
+          <P Name="type">OR_STATE</P>
+          <P Name="decomposition">CLUSTER_STATE</P>
+          <Children>
+            <state SSID="47">
+              <P Name="labelString">Open
+entry: servo = 0;</P>
+              <P Name="position">[650 215 260 55]</P>
+              <P Name="fontSize">12</P>
+              <P Name="subviewer">81</P>
+              <P Name="type">OR_STATE</P>
+              <P Name="decomposition">CLUSTER_STATE</P>
+            </state>
+            <state SSID="48">
+              <P Name="labelString">Gripping</P>
+              <P Name="position">[640 310 280 160]</P>
+              <P Name="fontSize">12</P>
+              <P Name="subviewer">81</P>
+              <P Name="type">OR_STATE</P>
+              <P Name="decomposition">CLUSTER_STATE</P>
+              <Children>
+                <state SSID="49">
+                  <P Name="labelString">Closing
+during: servo = min(servo + closeStep, 180);</P>
+                  <P Name="position">[655 350 250 50]</P>
+                  <P Name="fontSize">12</P>
+                  <P Name="subviewer">81</P>
+                  <P Name="type">OR_STATE</P>
+                  <P Name="decomposition">CLUSTER_STATE</P>
+                </state>
+                <state SSID="50">
+                  <P Name="labelString">Holding</P>
+                  <P Name="position">[655 415 250 40]</P>
+                  <P Name="fontSize">12</P>
+                  <P Name="subviewer">81</P>
+                  <P Name="type">OR_STATE</P>
+                  <P Name="decomposition">CLUSTER_STATE</P>
+                </state>
+                <transition SSID="53">
+                  <P Name="labelPosition">[1170 500 0 0]</P>
+                  <P Name="fontSize">12</P>
+                  <src>
+                    <P Name="intersection">[0 1.4142 1.4142 0 780 325 0 0]</P>
+                  </src>
+                  <dst>
+                    <P Name="SSID">49</P>
+                    <P Name="intersection">[1 0 -1 0.5 780 350 0 0]</P>
+                  </dst>
+                  <P Name="midPoint">[780 338]</P>
+                  <P Name="dataLimits">[777.6 782.4 325 350]</P>
+                  <P Name="subviewer">81</P>
+                  <slide>
+                    <P Name="mode">MIRROR_SLIDE</P>
+                    <P Name="sticky">BOTH_STICK</P>
+                  </slide>
+                  <P Name="executionOrder">1</P>
+                </transition>
+                <transition SSID="58">
+                  <P Name="labelString">[btnStop]</P>
+                  <P Name="labelPosition">[696.667 407.5 50 16]</P>
+                  <P Name="fontSize">12</P>
+                  <src>
+                    <P Name="SSID">49</P>
+                    <P Name="intersection">[3 0 1 0.8333 696.6667 400 0 0]</P>
+                  </src>
+                  <dst>
+                    <P Name="SSID">50</P>
+                    <P Name="intersection">[1 0 -1 0.1667 696.6667 415 0 0]</P>
+                  </dst>
+                  <P Name="midPoint">[696.6667 403.5]</P>
+                  <P Name="dataLimits">[694.267 699.067 400 415]</P>
+                  <P Name="subviewer">81</P>
+                  <slide>
+                    <P Name="sticky">BOTH_STICK</P>
+                  </slide>
+                  <P Name="executionOrder">1</P>
+                </transition>
+                <transition SSID="59">
+                  <P Name="labelString">[btnClose]</P>
+                  <P Name="labelPosition">[871.425 390.61 55.984 16]</P>
+                  <P Name="fontSize">12</P>
+                  <src>
+                    <P Name="SSID">50</P>
+                    <P Name="intersection">[1 0 -1 0.8333 863.3333 415 0 0]</P>
+                  </src>
+                  <dst>
+                    <P Name="SSID">49</P>
+                    <P Name="intersection">[3 0 1 0.1667 863.3333 400 0 0]</P>
+                  </dst>
+                  <P Name="midPoint">[863.3333 411.5]</P>
+                  <P Name="dataLimits">[860.933 865.733 400 415]</P>
+                  <P Name="subviewer">81</P>
+                  <slide>
+                    <P Name="sticky">BOTH_STICK</P>
+                  </slide>
+                  <P Name="executionOrder">1</P>
+                </transition>
+              </Children>
+            </state>
+            <transition SSID="52">
+              <P Name="labelPosition">[1170 297.5 0 0]</P>
+              <P Name="fontSize">12</P>
+              <src>
+                <P Name="intersection">[0 1.4142 1.4142 0 780 190 0 0]</P>
+              </src>
+              <dst>
+                <P Name="SSID">47</P>
+                <P Name="intersection">[1 0 -1 0.5 780 215 0 0]</P>
+              </dst>
+              <P Name="midPoint">[780 203]</P>
+              <P Name="dataLimits">[777.6 782.4 190 215]</P>
+              <P Name="subviewer">81</P>
+              <slide>
+                <P Name="mode">MIRROR_SLIDE</P>
+                <P Name="sticky">BOTH_STICK</P>
+              </slide>
+              <P Name="executionOrder">1</P>
+            </transition>
+            <transition SSID="56">
+              <P Name="labelString">[btnClose]</P>
+              <P Name="labelPosition">[695.342 293.883 55.984 16]</P>
+              <P Name="fontSize">12</P>
+              <src>
+                <P Name="SSID">47</P>
+                <P Name="intersection">[3 0 1 0.859 686.6667 270 0 0]</P>
+              </src>
+              <dst>
+                <P Name="SSID">48</P>
+                <P Name="intersection">[1 0 -1 0.1667 686.6667 310 0 0]</P>
+              </dst>
+              <P Name="midPoint">[686.6667 286]</P>
+              <P Name="dataLimits">[684.267 689.067 270 310]</P>
+              <P Name="subviewer">81</P>
+              <slide>
+                <P Name="sticky">BOTH_STICK</P>
+              </slide>
+              <P Name="executionOrder">1</P>
+            </transition>
+            <transition SSID="57">
+              <P Name="labelString">[btnOpen]</P>
+              <P Name="labelPosition">[887.735 272.954 54.672 16]</P>
+              <P Name="fontSize">12</P>
+              <src>
+                <P Name="SSID">48</P>
+                <P Name="intersection">[1 0 -1 0.8095 866.6667 310 0 0]</P>
+              </src>
+              <dst>
+                <P Name="SSID">47</P>
+                <P Name="intersection">[3 0 1 0.1667 866.6667 270 0 0]</P>
+              </dst>
+              <P Name="midPoint">[866.6667 294]</P>
+              <P Name="dataLimits">[864.267 869.067 270 310]</P>
+              <P Name="subviewer">81</P>
+              <slide>
+                <P Name="sticky">BOTH_STICK</P>
+              </slide>
+              <P Name="executionOrder">1</P>
+            </transition>
+          </Children>
+        </state>
+        <transition SSID="51">
+          <P Name="labelPosition">[1140 65 0 0]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="intersection">[0 1.4142 1.4142 0 760 35 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">45</P>
+            <P Name="intersection">[1 0 -1 0.5 760 60 0 0]</P>
+          </dst>
+          <P Name="midPoint">[760 48]</P>
+          <P Name="dataLimits">[757.6 762.4 35 60]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="mode">MIRROR_SLIDE</P>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">1</P>
+        </transition>
+        <transition SSID="54">
+          <P Name="labelString">UNLOCK</P>
+          <P Name="labelPosition">[872.262 175.479 51.969 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">45</P>
+            <P Name="intersection">[2 1 0 0.867 880 112.02 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">46</P>
+            <P Name="intersection">[1 0 -1 0.8333 886.6667 170 0 0]</P>
+          </dst>
+          <P Name="midPoint">[889.6362 130.7072]</P>
+          <P Name="dataLimits">[880 889.689 112.02 170]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="mode">MIRROR_SLIDE</P>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">1</P>
+        </transition>
+        <transition SSID="55">
+          <P Name="labelString">RESET</P>
+          <P Name="labelPosition">[678.872 140.545 42.984 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">46</P>
+            <P Name="intersection">[1 0 -1 0.1875 680 170 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">45</P>
+            <P Name="intersection">[3 0 1 0.8333 680 120 0 0]</P>
+          </dst>
+          <P Name="midPoint">[680 149]</P>
+          <P Name="dataLimits">[677.6 682.4 120 170]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">1</P>
+        </transition>
+      </Children>
+    </state>
+    <state SSID="60">
+      <P Name="labelString">ForceMonitor</P>
+      <P Name="position">[20 520 560 300]</P>
+      <P Name="fontSize">12</P>
+      <P Name="subviewer">81</P>
+      <P Name="type">AND_STATE</P>
+      <P Name="decomposition">CLUSTER_STATE</P>
+      <P Name="executionOrder">3</P>
+      <Children>
+        <state SSID="61">
+          <P Name="labelString">OutZone</P>
+          <P Name="position">[60 580 170 60]</P>
+          <P Name="fontSize">12</P>
+          <P Name="subviewer">81</P>
+          <P Name="type">OR_STATE</P>
+          <P Name="decomposition">CLUSTER_STATE</P>
+        </state>
+        <state SSID="62">
+          <P Name="labelString">InZone</P>
+          <P Name="position">[360 580 170 60]</P>
+          <P Name="fontSize">12</P>
+          <P Name="subviewer">81</P>
+          <P Name="type">OR_STATE</P>
+          <P Name="decomposition">CLUSTER_STATE</P>
+        </state>
+        <state SSID="63">
+          <P Name="labelString">OverForce</P>
+          <P Name="position">[60 730 170 60]</P>
+          <P Name="fontSize">12</P>
+          <P Name="subviewer">81</P>
+          <P Name="type">OR_STATE</P>
+          <P Name="decomposition">CLUSTER_STATE</P>
+        </state>
+        <transition SSID="64">
+          <P Name="labelPosition">[217.5 845 0 0]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="intersection">[0 1.4142 1.4142 0 145 555 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">61</P>
+            <P Name="intersection">[1 0 -1 0.5 145 580 0 0]</P>
+          </dst>
+          <P Name="midPoint">[145 568]</P>
+          <P Name="dataLimits">[142.6 147.4 555 580]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="mode">MIRROR_SLIDE</P>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">1</P>
+        </transition>
+        <transition SSID="65">
+          <P Name="labelString">[abs(f-180) &lt;= 5]/{send(IN_ZONE);}</P>
+          <P Name="labelPosition">[290.991 604.066 191.234 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">61</P>
+            <P Name="intersection">[2 1 0 0.1884 230 591.305 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">62</P>
+            <P Name="intersection">[4 -1 0 0.8116 360 591.305 0 0]</P>
+          </dst>
+          <P Name="midPoint">[291 591.305]</P>
+          <P Name="dataLimits">[230 360 588.905 593.705]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">1</P>
+        </transition>
+        <transition SSID="70">
+          <P Name="labelString">[f &lt; 400]</P>
+          <P Name="labelPosition">[66.053 710.891 45.656 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">63</P>
+            <P Name="intersection">[4 -1 0 0.8116 60 741.305 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">61</P>
+            <P Name="intersection">[4 -1 0 0.1884 60 628.695 0 0]</P>
+          </dst>
+          <P Name="midPoint">[27.7765 685]</P>
+          <P Name="dataLimits">[27.479 60 626.295 741.305]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="mode">MIRROR_SLIDE</P>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">2</P>
+        </transition>
+        <transition SSID="66">
+          <P Name="labelString">[abs(f-180) &gt; 5]/{send(OUT_ZONE);}</P>
+          <P Name="labelPosition">[295.851 632.339 197.562 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">62</P>
+            <P Name="intersection">[4 -1 0 0.1884 360 628.695 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">61</P>
+            <P Name="intersection">[2 1 0 0.8116 230 628.695 0 0]</P>
+          </dst>
+          <P Name="midPoint">[299 628.695]</P>
+          <P Name="dataLimits">[230 360 626.295 631.095]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">1</P>
+        </transition>
+        <transition SSID="67">
+          <P Name="labelString">[f &gt; 400]/{send(OVERFORCE);}</P>
+          <P Name="labelPosition">[145.726 682.421 170.25 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">61</P>
+            <P Name="intersection">[3 0 1 0.5 145 640 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">63</P>
+            <P Name="intersection">[1 0 -1 0.5 145 730 0 0]</P>
+          </dst>
+          <P Name="midPoint">[145 681]</P>
+          <P Name="dataLimits">[142.6 147.4 640 730]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">2</P>
+        </transition>
+        <transition SSID="69">
+          <P Name="labelString">RESET</P>
+          <P Name="labelPosition">[217.21 679.397 42.984 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">63</P>
+            <P Name="intersection">[1 0 -1 0.8333 201.6667 730 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">61</P>
+            <P Name="intersection">[3 0 1 0.1667 201.6667 640 0 0]</P>
+          </dst>
+          <P Name="midPoint">[201.6667 689]</P>
+          <P Name="dataLimits">[199.267 204.067 640 730]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">1</P>
+        </transition>
+        <transition SSID="68">
+          <P Name="labelString">[f &gt; 400]/{send(OVERFORCE);}</P>
+          <P Name="labelPosition">[343.003 746.318 170.25 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">62</P>
+            <P Name="intersection">[3 0 1 0.8235 390 640 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">63</P>
+            <P Name="intersection">[2 1 0 0.5 230 760 0 0]</P>
+          </dst>
+          <P Name="midPoint">[338.2074 724.2074]</P>
+          <P Name="dataLimits">[230 390 640 762.4]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="mode">MIRROR_SLIDE</P>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">2</P>
+        </transition>
+      </Children>
+    </state>
+    <state SSID="71">
+      <P Name="labelString">Reward</P>
+      <P Name="position">[600 520 360 300]</P>
+      <P Name="fontSize">12</P>
+      <P Name="subviewer">81</P>
+      <P Name="type">AND_STATE</P>
+      <P Name="decomposition">CLUSTER_STATE</P>
+      <P Name="executionOrder">4</P>
+      <Children>
+        <state SSID="72">
+          <P Name="labelString">Idle
+entry: motor = 0;</P>
+          <P Name="position">[700 570 150 55]</P>
+          <P Name="fontSize">12</P>
+          <P Name="subviewer">81</P>
+          <P Name="type">OR_STATE</P>
+          <P Name="decomposition">CLUSTER_STATE</P>
+        </state>
+        <state SSID="73">
+          <P Name="labelString">Win
+entry: motor = 1;</P>
+          <P Name="position">[620 710 140 55]</P>
+          <P Name="fontSize">12</P>
+          <P Name="subviewer">81</P>
+          <P Name="type">OR_STATE</P>
+          <P Name="decomposition">CLUSTER_STATE</P>
+        </state>
+        <state SSID="74">
+          <P Name="labelString">Lose
+entry: motor = -1;</P>
+          <P Name="position">[800 710 140 55]</P>
+          <P Name="fontSize">12</P>
+          <P Name="subviewer">81</P>
+          <P Name="type">OR_STATE</P>
+          <P Name="decomposition">CLUSTER_STATE</P>
+        </state>
+        <transition SSID="75">
+          <P Name="labelPosition">[1162.5 830 0 0]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="intersection">[0 1.4142 1.4142 0 775 545 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">72</P>
+            <P Name="intersection">[1 0 -1 0.5 775 570 0 0]</P>
+          </dst>
+          <P Name="midPoint">[775 558]</P>
+          <P Name="dataLimits">[772.6 777.4 545 570]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="mode">MIRROR_SLIDE</P>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">1</P>
+        </transition>
+        <transition SSID="77">
+          <P Name="labelString">after(3,sec)/{send(RESET);}</P>
+          <P Name="labelPosition">[725.83 664.686 151.25 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">73</P>
+            <P Name="intersection">[1 0 -1 0.5002 690.025 710 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">72</P>
+            <P Name="intersection">[4 -1 0 0.1814 700 615.025 0 0]</P>
+          </dst>
+          <P Name="midPoint">[679.1381 650.6381]</P>
+          <P Name="dataLimits">[677.396 700 612.625 710]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="mode">MIRROR_SLIDE</P>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">1</P>
+        </transition>
+        <transition SSID="79">
+          <P Name="labelString">after(3,sec)/{send(RESET);}</P>
+          <P Name="labelPosition">[813.445 682.202 151.25 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">74</P>
+            <P Name="intersection">[1 0 -1 0.4284 859.975 710 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">72</P>
+            <P Name="intersection">[2 1 0 0.8186 850 615.025 0 0]</P>
+          </dst>
+          <P Name="midPoint">[870.8619 650.6381]</P>
+          <P Name="dataLimits">[850 872.604 612.625 710]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="mode">MIRROR_SLIDE</P>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">1</P>
+        </transition>
+        <transition SSID="76">
+          <P Name="labelString">WIN</P>
+          <P Name="labelPosition">[733.29 670.03 25.297 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">72</P>
+            <P Name="intersection">[3 0 1 0.7556 736.6667 625 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">73</P>
+            <P Name="intersection">[1 0 -1 0.8333 736.6667 710 0 0]</P>
+          </dst>
+          <P Name="midPoint">[736.6667 663.5]</P>
+          <P Name="dataLimits">[734.267 739.067 625 710]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">1</P>
+        </transition>
+        <transition SSID="78">
+          <P Name="labelString">FAIL</P>
+          <P Name="labelPosition">[821.665 663.121 26.672 16]</P>
+          <P Name="fontSize">12</P>
+          <src>
+            <P Name="SSID">72</P>
+            <P Name="intersection">[3 0 1 0.1778 823.3333 625 0 0]</P>
+          </src>
+          <dst>
+            <P Name="SSID">74</P>
+            <P Name="intersection">[1 0 -1 0.1667 823.3333 710 0 0]</P>
+          </dst>
+          <P Name="midPoint">[823.3333 663.5]</P>
+          <P Name="dataLimits">[820.933 825.733 625 710]</P>
+          <P Name="subviewer">81</P>
+          <slide>
+            <P Name="sticky">BOTH_STICK</P>
+          </slide>
+          <P Name="executionOrder">2</P>
+        </transition>
+      </Children>
+    </state>
+    <data SSID="1" name="webConnected">
+      <P Name="scope">INPUT_DATA</P>
+      <props>
+        <array>
+          <P Name="size">1</P>
+        </array>
+        <type>
+          <P Name="primitive">SF_BOOLEAN_TYPE</P>
+          <P Name="isSigned">1</P>
+          <P Name="wordLength">16</P>
+        </type>
+        <P Name="frame">SF_FRAME_INHERITED</P>
+        <unit>
+          <P Name="name">inherit</P>
+        </unit>
+      </props>
+      <P Name="dataType">boolean</P>
+    </data>
+    <data SSID="2" name="voiceOK">
+      <P Name="scope">INPUT_DATA</P>
+      <props>
+        <array>
+          <P Name="size">1</P>
+        </array>
+        <type>
+          <P Name="primitive">SF_BOOLEAN_TYPE</P>
+          <P Name="isSigned">1</P>
+          <P Name="wordLength">16</P>
+        </type>
+        <P Name="frame">SF_FRAME_INHERITED</P>
+        <unit>
+          <P Name="name">inherit</P>
+        </unit>
+      </props>
+      <P Name="dataType">boolean</P>
+    </data>
+    <data SSID="3" name="btnClose">
+      <P Name="scope">INPUT_DATA</P>
+      <props>
+        <array>
+          <P Name="size">1</P>
+        </array>
+        <type>
+          <P Name="primitive">SF_BOOLEAN_TYPE</P>
+          <P Name="isSigned">1</P>
+          <P Name="wordLength">16</P>
+        </type>
+        <P Name="frame">SF_FRAME_INHERITED</P>
+        <unit>
+          <P Name="name">inherit</P>
+        </unit>
+      </props>
+      <P Name="dataType">boolean</P>
+    </data>
+    <data SSID="4" name="btnStop">
+      <P Name="scope">INPUT_DATA</P>
+      <props>
+        <array>
+          <P Name="size">1</P>
+        </array>
+        <type>
+          <P Name="primitive">SF_BOOLEAN_TYPE</P>
+          <P Name="isSigned">1</P>
+          <P Name="wordLength">16</P>
+        </type>
+        <P Name="frame">SF_FRAME_INHERITED</P>
+        <unit>
+          <P Name="name">inherit</P>
+        </unit>
+      </props>
+      <P Name="dataType">boolean</P>
+    </data>
+    <data SSID="5" name="btnOpen">
+      <P Name="scope">INPUT_DATA</P>
+      <props>
+        <array>
+          <P Name="size">1</P>
+        </array>
+        <type>
+          <P Name="primitive">SF_BOOLEAN_TYPE</P>
+          <P Name="isSigned">1</P>
+          <P Name="wordLength">16</P>
+        </type>
+        <P Name="frame">SF_FRAME_INHERITED</P>
+        <unit>
+          <P Name="name">inherit</P>
+        </unit>
+      </props>
+      <P Name="dataType">boolean</P>
+    </data>
+    <data SSID="6" name="contact">
+      <P Name="scope">INPUT_DATA</P>
+      <props>
+        <array>
+          <P Name="size">1</P>
+        </array>
+        <type>
+          <P Name="primitive">SF_BOOLEAN_TYPE</P>
+          <P Name="isSigned">1</P>
+          <P Name="wordLength">16</P>
+        </type>
+        <P Name="frame">SF_FRAME_INHERITED</P>
+        <unit>
+          <P Name="name">inherit</P>
+        </unit>
+      </props>
+      <P Name="dataType">boolean</P>
+    </data>
+    <data SSID="7" name="f">
+      <P Name="scope">INPUT_DATA</P>
+      <props>
+        <array>
+          <P Name="size">1</P>
+        </array>
+        <type>
+          <P Name="primitive">SF_DOUBLE_TYPE</P>
+          <P Name="isSigned">1</P>
+          <P Name="wordLength">16</P>
+        </type>
+        <P Name="frame">SF_FRAME_INHERITED</P>
+        <unit>
+          <P Name="name">inherit</P>
+        </unit>
+      </props>
+      <P Name="dataType">double</P>
+    </data>
+    <data SSID="8" name="led">
+      <P Name="scope">OUTPUT_DATA</P>
+      <props>
+        <P Name="initialValue">0</P>
+        <array>
+          <P Name="size">1</P>
+        </array>
+        <type>
+          <P Name="primitive">SF_DOUBLE_TYPE</P>
+          <P Name="isSigned">1</P>
+          <P Name="wordLength">16</P>
+        </type>
+        <P Name="frame">SF_FRAME_NO</P>
+        <unit>
+          <P Name="name">inherit</P>
+        </unit>
+      </props>
+      <P Name="dataType">double</P>
+    </data>
+    <data SSID="9" name="servo">
+      <P Name="scope">OUTPUT_DATA</P>
+      <props>
+        <P Name="initialValue">0</P>
+        <array>
+          <P Name="size">1</P>
+        </array>
+        <type>
+          <P Name="primitive">SF_DOUBLE_TYPE</P>
+          <P Name="isSigned">1</P>
+          <P Name="wordLength">16</P>
+        </type>
+        <P Name="frame">SF_FRAME_NO</P>
+        <unit>
+          <P Name="name">inherit</P>
+        </unit>
+      </props>
+      <P Name="dataType">double</P>
+    </data>
+    <data SSID="10" name="motor">
+      <P Name="scope">OUTPUT_DATA</P>
+      <props>
+        <P Name="initialValue">0</P>
+        <array>
+          <P Name="size">1</P>
+        </array>
+        <type>
+          <P Name="primitive">SF_DOUBLE_TYPE</P>
+          <P Name="isSigned">1</P>
+          <P Name="wordLength">16</P>
+        </type>
+        <P Name="frame">SF_FRAME_NO</P>
+        <unit>
+          <P Name="name">inherit</P>
+        </unit>
+      </props>
+      <P Name="dataType">double</P>
+    </data>
+    <data SSID="11" name="score">
+      <P Name="scope">OUTPUT_DATA</P>
+      <props>
+        <P Name="initialValue">0</P>
+        <array>
+          <P Name="size">1</P>
+        </array>
+        <type>
+          <P Name="primitive">SF_DOUBLE_TYPE</P>
+          <P Name="isSigned">1</P>
+          <P Name="wordLength">16</P>
+        </type>
+        <P Name="frame">SF_FRAME_NO</P>
+        <unit>
+          <P Name="name">inherit</P>
+        </unit>
+      </props>
+      <P Name="dataType">double</P>
+    </data>
+    <data SSID="12" name="closeStep">
+      <P Name="scope">LOCAL_DATA</P>
+      <props>
+        <P Name="initialValue">0</P>
+        <array>
+          <P Name="size">1</P>
+        </array>
+        <type>
+          <P Name="primitive">SF_DOUBLE_TYPE</P>
+          <P Name="isSigned">1</P>
+          <P Name="wordLength">16</P>
+        </type>
+        <P Name="frame">SF_FRAME_INHERITED</P>
+        <unit>
+          <P Name="name">inherit</P>
+        </unit>
+      </props>
+      <P Name="dataType">double</P>
+    </data>
+    <event SSID="13">
+      <P Name="name">UNLOCK</P>
+      <P Name="scope">LOCAL_EVENT</P>
+      <P Name="trigger">FUNCTION_CALL_EVENT</P>
+    </event>
+    <event SSID="14">
+      <P Name="name">IN_ZONE</P>
+      <P Name="scope">LOCAL_EVENT</P>
+      <P Name="trigger">FUNCTION_CALL_EVENT</P>
+    </event>
+    <event SSID="15">
+      <P Name="name">OUT_ZONE</P>
+      <P Name="scope">LOCAL_EVENT</P>
+      <P Name="trigger">FUNCTION_CALL_EVENT</P>
+    </event>
+    <event SSID="16">
+      <P Name="name">OVERFORCE</P>
+      <P Name="scope">LOCAL_EVENT</P>
+      <P Name="trigger">FUNCTION_CALL_EVENT</P>
+    </event>
+    <event SSID="17">
+      <P Name="name">WIN</P>
+      <P Name="scope">LOCAL_EVENT</P>
+      <P Name="trigger">FUNCTION_CALL_EVENT</P>
+    </event>
+    <event SSID="18">
+      <P Name="name">FAIL</P>
+      <P Name="scope">LOCAL_EVENT</P>
+      <P Name="trigger">FUNCTION_CALL_EVENT</P>
+    </event>
+    <event SSID="19">
+      <P Name="name">RESET</P>
+      <P Name="scope">LOCAL_EVENT</P>
+      <P Name="trigger">FUNCTION_CALL_EVENT</P>
+    </event>
+  </Children>
+</chart>

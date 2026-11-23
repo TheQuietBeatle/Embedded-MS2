@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<System>
+  <P Name="SIDHighWatermark">123</P>
+  <Block BlockType="Inport" Name="webConnected" SID="1::113">
+    <P Name="Position">[20, 101, 40, 119]</P>
+    <P Name="ZOrder">93</P>
+  </Block>
+  <Block BlockType="Inport" Name="voiceOK" SID="1::114">
+    <P Name="Position">[20, 136, 40, 154]</P>
+    <P Name="ZOrder">94</P>
+    <P Name="Port">2</P>
+  </Block>
+  <Block BlockType="Inport" Name="btnClose" SID="1::115">
+    <P Name="Position">[20, 171, 40, 189]</P>
+    <P Name="ZOrder">95</P>
+    <P Name="Port">3</P>
+  </Block>
+  <Block BlockType="Inport" Name="btnStop" SID="1::116">
+    <P Name="Position">[20, 206, 40, 224]</P>
+    <P Name="ZOrder">96</P>
+    <P Name="Port">4</P>
+  </Block>
+  <Block BlockType="Inport" Name="btnOpen" SID="1::117">
+    <P Name="Position">[20, 246, 40, 264]</P>
+    <P Name="ZOrder">97</P>
+    <P Name="Port">5</P>
+  </Block>
+  <Block BlockType="Inport" Name="contact" SID="1::118">
+    <P Name="Position">[20, 281, 40, 299]</P>
+    <P Name="ZOrder">98</P>
+    <P Name="Port">6</P>
+  </Block>
+  <Block BlockType="Inport" Name="f" SID="1::119">
+    <P Name="Position">[20, 316, 40, 334]</P>
+    <P Name="ZOrder">99</P>
+    <P Name="Port">7</P>
+  </Block>
+  <Block BlockType="Demux" Name=" Demux " SID="1::110">
+    <PortCounts in="1" out="1"/>
+    <P Name="Position">[270, 280, 320, 320]</P>
+    <P Name="ZOrder">90</P>
+    <P Name="Outputs">1</P>
+  </Block>
+  <Block BlockType="S-Function" Name=" SFunction " SID="1::109">
+    <P Name="Tag">Stateflow S-Function 3</P>
+    <PortCounts in="7" out="5"/>
+    <P Name="Position">[180, 110, 230, 270]</P>
+    <P Name="ZOrder">89</P>
+    <P Name="FunctionName">sf_sfun</P>
+    <P Name="PortCounts">[7 5]</P>
+    <P Name="SFunctionDeploymentMode">off</P>
+    <P Name="EnableBusSupport">off</P>
+    <P Name="SFcnIsStateOwnerBlock">off</P>
+    <PortProperties>
+      <Port Type="out" Index="2">
+        <P Name="Name">led</P>
+      </Port>
+      <Port Type="out" Index="3">
+        <P Name="Name">servo</P>
+      </Port>
+      <Port Type="out" Index="4">
+        <P Name="Name">motor</P>
+      </Port>
+      <Port Type="out" Index="5">
+        <P Name="Name">score</P>
+      </Port>
+    </PortProperties>
+  </Block>
+  <Block BlockType="Terminator" Name=" Terminator " SID="1::111">
+    <P Name="Position">[460, 291, 480, 309]</P>
+    <P Name="ZOrder">91</P>
+  </Block>
+  <Block BlockType="Outport" Name="led" SID="1::120">
+    <P Name="Position">[460, 101, 480, 119]</P>
+    <P Name="ZOrder">100</P>
+  </Block>
+  <Block BlockType="Outport" Name="servo" SID="1::121">
+    <P Name="Position">[460, 136, 480, 154]</P>
+    <P Name="ZOrder">101</P>
+    <P Name="Port">2</P>
+  </Block>
+  <Block BlockType="Outport" Name="motor" SID="1::122">
+    <P Name="Position">[460, 171, 480, 189]</P>
+    <P Name="ZOrder">102</P>
+    <P Name="Port">3</P>
+  </Block>
+  <Block BlockType="Outport" Name="score" SID="1::123">
+    <P Name="Position">[460, 206, 480, 224]</P>
+    <P Name="ZOrder">103</P>
+    <P Name="Port">4</P>
+  </Block>
+  <Line>
+    <P Name="ZOrder">82</P>
+    <P Name="Src">1::113#out:1</P>
+    <P Name="Dst">1::109#in:1</P>
+  </Line>
+  <Line>
+    <P Name="ZOrder">83</P>
+    <P Name="Src">1::114#out:1</P>
+    <P Name="Dst">1::109#in:2</P>
+  </Line>
+  <Line>
+    <P Name="ZOrder">84</P>
+    <P Name="Src">1::115#out:1</P>
+    <P Name="Dst">1::109#in:3</P>
+  </Line>
+  <Line>
+    <P Name="ZOrder">85</P>
+    <P Name="Src">1::116#out:1</P>
+    <P Name="Dst">1::109#in:4</P>
+  </Line>
+  <Line>
+    <P Name="ZOrder">86</P>
+    <P Name="Src">1::117#out:1</P>
+    <P Name="Dst">1::109#in:5</P>
+  </Line>
+  <Line>
+    <P Name="ZOrder">87</P>
+    <P Name="Src">1::118#out:1</P>
+    <P Name="Dst">1::109#in:6</P>
+  </Line>
+  <Line>
+    <P Name="ZOrder">88</P>
+    <P Name="Src">1::119#out:1</P>
+    <P Name="Dst">1::109#in:7</P>
+  </Line>
+  <Line>
+    <P Name="Name">led</P>
+    <P Name="ZOrder">89</P>
+    <P Name="Labels">[0, 0]</P>
+    <P Name="Src">1::109#out:2</P>
+    <P Name="Dst">1::120#in:1</P>
+  </Line>
+  <Line>
+    <P Name="Name">servo</P>
+    <P Name="ZOrder">90</P>
+    <P Name="Labels">[0, 0]</P>
+    <P Name="Src">1::109#out:3</P>
+    <P Name="Dst">1::121#in:1</P>
+  </Line>
+  <Line>
+    <P Name="Name">motor</P>
+    <P Name="ZOrder">91</P>
+    <P Name="Labels">[0, 0]</P>
+    <P Name="Src">1::109#out:4</P>
+    <P Name="Dst">1::122#in:1</P>
+  </Line>
+  <Line>
+    <P Name="Name">score</P>
+    <P Name="ZOrder">92</P>
+    <P Name="Labels">[0, 0]</P>
+    <P Name="Src">1::109#out:5</P>
+    <P Name="Dst">1::123#in:1</P>
+  </Line>
+  <Line>
+    <P Name="ZOrder">93</P>
+    <P Name="Src">1::110#out:1</P>
+    <P Name="Dst">1::111#in:1</P>
+  </Line>
+  <Line>
+    <P Name="ZOrder">94</P>
+    <P Name="Src">1::109#out:1</P>
+    <P Name="Dst">1::110#in:1</P>
+  </Line>
+</System>

@@ -1,0 +1,6 @@
+{
+  "PreCompExecutionDomainType":"Unset",
+  "SimulinkSubDomainType":"Simulink",
+  "SolverName":"FixedStepDiscrete",
+  "_mw_element_name":"GraphicalInterface"
+}
