@@ -30,7 +30,7 @@
 #include "servo.h"                 // Servo driver: servo_init / servo_write / servo_read / servo_step_toward
 #include "motor.h"                 // DC reward-motor driver (L298N): motor_set / motor_coast / motor_get
 #include "fsr.h"                   // Force-sensitive resistor (grip pressure) driver
-#include "mic.h"                   // INMP441 I2S microphone driver
+#include "mic.h"                   // MAX9814 analog microphone driver (ADC)
 #include "dhcp_server.h"           // Small DHCP server that hands out IPs on the Pico's own network
 
 #if __has_include("wifi_config.h")                 // If the user created their private Wi-Fi file...
@@ -60,16 +60,16 @@
 #define FSR_BAR_MAX      500       // full width of the page's bar
 #define FSR_READ_MS      50u       // how often the main loop samples the FSR
 
-// Mic test (INMP441 sound level meter on the page)
+// Mic test (MAX9814 sound level meter on the page)
 #define MIC_READ_MS      60u       // how often the main loop measures loudness
 #define MIC_BURST        160u      // samples per measurement = 10 ms at 16 kHz (keeps servos smooth)
-#define MIC_QUIET        500u      // level shown as an empty bar   (tune from what the page shows)
-#define MIC_LOUD         60000u    // level shown as a full bar
+#define MIC_QUIET        20u       // level shown as an empty bar   (tune from what the page shows)
+#define MIC_LOUD         500u      // level shown as a full bar
 
 // Audio recording (kept in RAM, served to the page as a .wav file)
 #define REC_SECONDS      3u        // RAM limit: 3 s x 16 kHz x 2 bytes = 96 KB
 #define REC_SAMPLES      (REC_SECONDS * MIC_SAMPLE_RATE_HZ)   // total samples in one recording (48 000)
-#define REC_GAIN_SHIFT   4         // 24-bit mic -> 16-bit WAV: >>8 is 1x, >>4 is 16x louder
+#define REC_GAIN_SHIFT   4         // 12-bit ADC -> 16-bit WAV: <<4 fills the 16-bit range
 #define WAV_HEADER_LEN   44u       // size of a standard WAV file header in bytes
 #define HTTP_PORT        80        // normal web port, so the browser URL needs no ":port"
 #define WIFI_JOIN_ATTEMPTS 2       // WPA2 + WPA2/WPA3, ~40 s, then own network
@@ -203,7 +203,7 @@ static const char PAGE[] =
         // ---- Card 2: microphone test + recording ----
         "<div class=\"card\">"
             "<div class=\"row\">"
-                "<span class=\"lbl\">Mic test (INMP441)</span>"                   // card title
+                "<span class=\"lbl\">Mic test (MAX9814)</span>"                   // card title
                 "<span class=\"ang\" id=\"mic\">--</span>"                        // big loudness number
             "</div>"
             "<div class=\"bar\">"
@@ -746,18 +746,16 @@ static void record_audio(void) {
     printf("Recording %u s...\n", REC_SECONDS);      // log it over USB
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);   // LED off while recording
 
-    for (int i = 0; i < 16; i++) {                   // drop stale samples waiting in the FIFO
-        (void)mic_read_sample();                     // read and throw away
-    }                                                // end of flush loop
-    int32_t dc = 0;                                  // running average = the mic's constant offset (DC)
+    int32_t sum = 0;                                 // add up 256 samples to measure the constant offset (DC)
     for (int i = 0; i < 256; i++) {                  // estimate the DC offset first
-        dc += (mic_read_sample() - dc) / 16;         // move the average 1/16 of the way toward each sample
+        sum += mic_read_sample();                    // one sample (waits for its 16 kHz slot)
     }                                                // end of DC warm-up
+    int32_t dc_q8 = sum;                             // average x 256 (sum of 256 = average x 256), keeps the fraction
     int16_t *out = (int16_t *)(wav + WAV_HEADER_LEN);   // samples go right after the 44-byte header
     for (uint32_t i = 0; i < REC_SAMPLES; i++) {     // record every sample
-        int32_t s = mic_read_sample();               // one 24-bit sample (waits for the next one)
-        dc += (s - dc) / 1024;                       // slow tracking keeps the audio itself
-        int32_t v = (s - dc) >> REC_GAIN_SHIFT;      // remove the offset and scale down to 16-bit size
+        int32_t s = mic_read_sample();               // one 12-bit sample, about -1241..+1241 (waits for the next one)
+        dc_q8 += (s * 256 - dc_q8) >> 10;            // slow tracking keeps the audio itself
+        int32_t v = (s - (dc_q8 >> 8)) << REC_GAIN_SHIFT;   // remove the offset and scale up to 16-bit size
         if (v > 32767)  v = 32767;                   // clip loud peaks to the 16-bit maximum
         if (v < -32768) v = -32768;                  // clip to the 16-bit minimum
         out[i] = (int16_t)v;                         // store the sample
@@ -793,8 +791,8 @@ int main(void) {                                     // program starts here
         sleep_ms(HOME_GAP_MS);                       // wait before the next one (avoids a current spike)
     }                                                // end of homing loop
 
-    mic_ok = mic_init(PIN_MIC_SCK, PIN_MIC_WS, PIN_MIC_SD);   // start the I2S mic receiver
-    printf("Mic: %s\n", mic_ok ? "I2S receiver running" : "INIT FAILED (check pins)");   // report the result
+    mic_ok = mic_init(PIN_MIC_ADC);                  // set up the ADC pin for the MAX9814 mic
+    printf("Mic: %s\n", mic_ok ? "MAX9814 on ADC running" : "INIT FAILED (pin must be GP26-28)");   // report the result
 
     if (cyw43_arch_init()) {                         // start the Wi-Fi chip (non-zero = failed)
         printf("Wi-Fi chip failed to start\n");      // report

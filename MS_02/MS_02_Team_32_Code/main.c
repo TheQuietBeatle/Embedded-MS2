@@ -33,8 +33,8 @@
 
 #define MOTOR_TEST_SPEED 70      // percent
 
-#define MIC_QUIET       500u     // mic level shown as LED off  (tune from the serial output)
-#define MIC_LOUD        60000u   // mic level shown as LED full
+#define MIC_QUIET       20u      // mic level shown as LED off  (tune from the serial output)
+#define MIC_LOUD        500u     // mic level shown as LED full
 
 // ---- Servos -----------------------------------------------------------------
 enum { WAIST, SHOULDER, ELBOW, WRIST_PITCH, WRIST_ROLL, GRIPPER, NUM_SERVOS };
@@ -142,8 +142,10 @@ int main(void) {
     test_rgb_led();
     test_motor();
 
-    bool mic_ok = mic_init(PIN_MIC_SCK, PIN_MIC_WS, PIN_MIC_SD);
-    printf("[mic] %s\n", mic_ok ? "I2S receiver running" : "INIT FAILED (check pins)");
+    bool mic_ok = mic_init(PIN_MIC_ADC);
+    printf("[mic] %s (raw ADC %u, ~1551 = 1.25 V expected)\n",
+           mic_ok ? "MAX9814 on ADC running" : "INIT FAILED (pin must be GP26-28)",
+           mic_ok ? mic_read_raw() : 0u);
 
     printf("[sensors] press the FSR (green) and talk/clap near the mic (red)\n");
     while (true) {
@@ -154,7 +156,7 @@ int main(void) {
         uint8_t red   = mic_to_brightness(loud);
         rgb_led_set(red, green, 0);
 
-        printf("FSR raw %4u  units %4u  |  mic level %7lu  ->  LED R%3u G%3u\n",
+        printf("FSR raw %4u  units %4u  |  mic level %4lu  ->  LED R%3u G%3u\n",
                fsr_read_raw(), force, (unsigned long)loud, red, green);
         if (!mic_ok) sleep_ms(100);
     }

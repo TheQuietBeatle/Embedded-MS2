@@ -1,49 +1,60 @@
-// mic.c - INMP441 I2S MEMS microphone driver (read through PIO).
+// mic.c - MAX9814 electret microphone amplifier driver (analog, read through the RP2040 ADC).
 #include "mic.h"
 
-#include "hardware/pio.h"
-#include "i2s_in.pio.h"
+#include "pico/stdlib.h"
+#include "hardware/adc.h"
 
-#define MIC_SETTLE_SAMPLES 1600u   // ~100 ms: the INMP441 needs time to start after the clock begins
+#define MIC_ADC_MID        1551     // 1.25 V offset in ADC counts: 1.25 / 3.3 * 4095
+#define MIC_PERIOD_HALF_US 125u     // 1 / 16 kHz = 62.5 us = 125 half-microseconds
+#define MIC_SETTLE_SAMPLES 1600u    // ~100 ms to learn the real DC offset at start-up
 
-static PIO  mic_pio = pio0;
-static uint mic_sm;
+static uint8_t  mic_input;          // ADC input number (GP26 = 0, GP27 = 1, GP28 = 2)
+static uint64_t next_slot;          // time of the next sample, in half-microseconds
+static int32_t  dc_q8;              // measured DC offset x 256 (fixed point, keeps the fraction)
 
-bool mic_init(uint8_t pin_sck, uint8_t pin_ws, uint8_t pin_sd) {
-    if (pin_ws != pin_sck + 1u) {
-        return false;                       // the PIO drives SCK and WS as two consecutive pins
+bool mic_init(uint8_t pin) {
+    if (pin < 26u || pin > 28u) {
+        return false;                       // only GP26-28 are connected to the ADC
     }
-    if (!pio_can_add_program(mic_pio, &i2s_in_program)) {
-        return false;
-    }
-    int sm = pio_claim_unused_sm(mic_pio, false);
-    if (sm < 0) {
-        return false;
-    }
-    mic_sm = (uint)sm;
-    uint offset = pio_add_program(mic_pio, &i2s_in_program);
-    i2s_in_program_init(mic_pio, mic_sm, offset, pin_sck, pin_sd, MIC_SAMPLE_RATE_HZ);
+    mic_input = (uint8_t)(pin - 26u);
+    adc_init();
+    adc_gpio_init(pin);                     // turn off the digital input on this pin
 
+    // Learn the real offset (the module's 1.25 V and the ADC are not exact).
+    int64_t sum = 0;
+    next_slot = 0;
     for (uint32_t i = 0; i < MIC_SETTLE_SAMPLES; i++) {
-        (void)mic_read_sample();            // throw away start-up samples
+        sum += mic_read_sample();
     }
+    dc_q8 = (int32_t)((sum * 256) / MIC_SETTLE_SAMPLES);
     return true;
 }
 
+uint16_t mic_read_raw(void) {
+    adc_select_input(mic_input);            // re-select each time: the FSR shares the same ADC
+    return adc_read();
+}
+
 int32_t mic_read_sample(void) {
-    uint32_t raw = pio_sm_get_blocking(mic_pio, mic_sm);
-    return ((int32_t)raw) >> 8;             // 24-bit data is left-aligned in 32 bits
+    uint64_t now = time_us_64() * 2u;
+    if (next_slot + MIC_PERIOD_HALF_US < now) {
+        next_slot = now;                    // caller paused for a while: restart the timing
+    }
+    while (time_us_64() * 2u < next_slot) {
+        tight_loop_contents();              // wait for this sample's time slot
+    }
+    next_slot += MIC_PERIOD_HALF_US;
+    return (int32_t)mic_read_raw() - MIC_ADC_MID;
 }
 
 uint32_t mic_read_level(uint16_t n) {
     if (n == 0) n = 1;
-    static int32_t dc;                      // running DC offset estimate
-    uint64_t sum = 0;
+    uint32_t sum = 0;
     for (uint16_t i = 0; i < n; i++) {
         int32_t s = mic_read_sample();
-        dc += (s - dc) / 64;                // slow low-pass = DC level
-        int32_t ac = s - dc;
+        dc_q8 += (s * 256 - dc_q8) >> 10;     // very slow low-pass = DC offset (follows drift, not sound)
+        int32_t ac = s - (dc_q8 >> 8);      // the sound itself
         sum += (uint32_t)(ac < 0 ? -ac : ac);
     }
-    return (uint32_t)(sum / n);
+    return sum / n;
 }

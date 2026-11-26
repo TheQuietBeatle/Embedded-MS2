@@ -40,16 +40,12 @@ add_executable(ms02_neural_calibrator
     mic.c
 )
 
-# Builds i2s_in.pio.h from the PIO program used by the mic driver
-pico_generate_pio_header(ms02_neural_calibrator ${CMAKE_CURRENT_LIST_DIR}/i2s_in.pio)
-
 target_include_directories(ms02_neural_calibrator PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 target_link_libraries(ms02_neural_calibrator
     pico_stdlib
     hardware_pwm
     hardware_adc
-    hardware_pio
     hardware_clocks
 )
 
@@ -73,10 +69,6 @@ add_executable(ms02_web_control
     mic.c
 )
 
-# The mic driver's PIO program, for the web program too
-pico_generate_pio_header(ms02_web_control ${CMAKE_CURRENT_LIST_DIR}/i2s_in.pio
-    OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/web_pio)
-
 target_include_directories(ms02_web_control PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 
 target_link_libraries(ms02_web_control
@@ -84,7 +76,6 @@ target_link_libraries(ms02_web_control
     pico_cyw43_arch_lwip_threadsafe_background
     hardware_pwm
     hardware_adc
-    hardware_pio
     hardware_clocks
 )
 

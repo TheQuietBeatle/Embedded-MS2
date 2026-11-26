@@ -1,25 +1,35 @@
-// mic.h - INMP441 I2S MEMS microphone driver (read through PIO).
+// mic.h - MAX9814 electret microphone amplifier driver (analog, read through the RP2040 ADC).
 //
-// Wiring: VDD -> 3V3, GND -> GND, L/R -> GND (left channel),
-//         SCK -> PIN_MIC_SCK, WS -> PIN_MIC_WS (= SCK + 1), SD -> PIN_MIC_SD.
-// Samples are 24-bit signed, returned in an int32_t.
+// Wiring: Vdd -> 3V3, GND -> GND, Out -> PIN_MIC_ADC (GP26/27/28),
+//         Gain -> left floating (60 dB) or GND (50 dB) or Vdd (40 dB),
+//         AR   -> left floating (attack/release ratio 1:4000).
+// The module has automatic gain control (AGC): the output never goes over
+// about 2 V peak-to-peak, centred on a 1.25 V DC offset (0.25 V .. 2.25 V),
+// so it fits the Pico's 0-3.3 V ADC without any extra parts.
+//
+// The ADC is 12-bit, so one sample is 0..4095. mic_read_sample() removes the
+// nominal 1.25 V offset and returns about -1241..+1241 (1 count ~ 0.8 mV).
 #ifndef MIC_H
 #define MIC_H
 
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MIC_SAMPLE_RATE_HZ 16000u
+#define MIC_SAMPLE_RATE_HZ 16000u   // samples per second (one sample every 62.5 us)
 
-// Start the PIO I2S receiver. pin_ws must equal pin_sck + 1.
-// Returns false if no PIO state machine / program space is free or the pins are wrong.
-bool     mic_init(uint8_t pin_sck, uint8_t pin_ws, uint8_t pin_sd);
+// Set up the ADC on pin (must be GP26, GP27 or GP28).
+// Returns false if the pin has no ADC.
+bool     mic_init(uint8_t pin);
 
-// Blocking read of one 24-bit sample (range about -8388608..8388607).
+// Raw ADC value 0..4095 (read immediately, not paced).
+uint16_t mic_read_raw(void);
+
+// Blocking: waits for the next 16 kHz sample slot, then returns one sample
+// with the 1.25 V offset removed (about -1241..+1241).
 int32_t  mic_read_sample(void);
 
 // Read n samples and return the average loudness (mean absolute value,
-// DC offset removed). Silence ~ a few hundred, speech near the mic ~ 10k-100k+.
+// exact DC offset removed). Quiet room ~ 5-30, speech near the mic ~ 200-800.
 uint32_t mic_read_level(uint16_t n);
 
 #endif // MIC_H
