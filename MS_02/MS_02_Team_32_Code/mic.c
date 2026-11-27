@@ -7,10 +7,15 @@
 #define MIC_ADC_MID        1551     // 1.25 V offset in ADC counts: 1.25 / 3.3 * 4095
 #define MIC_PERIOD_HALF_US 125u     // 1 / 16 kHz = 62.5 us = 125 half-microseconds
 #define MIC_SETTLE_SAMPLES 1600u    // ~100 ms to learn the real DC offset at start-up
+#define MIC_FLOOR_SAMPLES  8000u    // ~0.5 s to measure the room's background noise
+#define MIC_FLOOR_MARGIN   2u       // ignore anything below 2x the background noise
+#define MIC_RELEASE_SHIFT  3u       // loudness falls 1/8 of the way per call (slow release)
 
 static uint8_t  mic_input;          // ADC input number (GP26 = 0, GP27 = 1, GP28 = 2)
 static uint64_t next_slot;          // time of the next sample, in half-microseconds
 static int32_t  dc_q8;              // measured DC offset x 256 (fixed point, keeps the fraction)
+static uint32_t noise_floor;        // room background level, measured at start-up
+static uint32_t loud_smooth;        // last value returned by mic_read_loudness()
 
 bool mic_init(uint8_t pin) {
     if (pin < 26u || pin > 28u) {
@@ -27,6 +32,9 @@ bool mic_init(uint8_t pin) {
         sum += mic_read_sample();
     }
     dc_q8 = (int32_t)((sum * 256) / MIC_SETTLE_SAMPLES);
+
+    noise_floor = mic_read_level(MIC_FLOOR_SAMPLES);   // what "silence" looks like in this room
+    loud_smooth = 0;
     return true;
 }
 
@@ -57,4 +65,22 @@ uint32_t mic_read_level(uint16_t n) {
         sum += (uint32_t)(ac < 0 ? -ac : ac);
     }
     return sum / n;
+}
+
+uint32_t mic_noise_floor(void) {
+    return noise_floor;
+}
+
+uint32_t mic_read_loudness(uint16_t n) {
+    uint32_t level = mic_read_level(n);
+    uint32_t ignore = noise_floor * MIC_FLOOR_MARGIN;
+    uint32_t above = level > ignore ? level - ignore : 0;   // only what's louder than the room
+
+    if (above > loud_smooth) {
+        loud_smooth = above;                                 // fast attack: react at once
+    } else {
+        loud_smooth -= (loud_smooth - above) >> MIC_RELEASE_SHIFT;   // slow release
+        if (loud_smooth < 2u) loud_smooth = 0;               // settle exactly on 0
+    }
+    return loud_smooth;
 }

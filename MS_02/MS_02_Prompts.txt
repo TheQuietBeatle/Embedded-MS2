@@ -107,3 +107,4 @@ Prompts used during coding and debugging (AI tool: Claude)
 6-	write simple starter code for the main states and explain what each part does line by line
 7-	how do I wire everything together safely without damaging anything
 8-	I am replacing my INMP441 mic with a MAX9814 electret mic amplifier with auto gain control (analog output). Update the mic driver and everything that uses it.
+9-	the gripper and wrist pitch (SG90, GP14) roll endlessly, and the sensors are too sensitive

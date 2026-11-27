@@ -63,8 +63,8 @@
 // Mic test (MAX9814 sound level meter on the page)
 #define MIC_READ_MS      60u       // how often the main loop measures loudness
 #define MIC_BURST        160u      // samples per measurement = 10 ms at 16 kHz (keeps servos smooth)
-#define MIC_QUIET        20u       // level shown as an empty bar   (tune from what the page shows)
-#define MIC_LOUD         500u      // level shown as a full bar
+#define MIC_QUIET        10u       // loudness (above room noise) shown as an empty bar (tune from the page)
+#define MIC_LOUD         400u      // loudness shown as a full bar
 
 // Audio recording (kept in RAM, served to the page as a .wav file)
 #define REC_SECONDS      3u        // RAM limit: 3 s x 16 kHz x 2 bytes = 96 KB
@@ -792,7 +792,9 @@ int main(void) {                                     // program starts here
     }                                                // end of homing loop
 
     mic_ok = mic_init(PIN_MIC_ADC);                  // set up the ADC pin for the MAX9814 mic
-    printf("Mic: %s\n", mic_ok ? "MAX9814 on ADC running" : "INIT FAILED (pin must be GP26-28)");   // report the result
+    printf("Mic: %s, room noise floor %lu\n",      // report the result
+           mic_ok ? "MAX9814 on ADC running" : "INIT FAILED (pin must be GP26-28)",
+           mic_ok ? (unsigned long)mic_noise_floor() : 0ul);
 
     if (cyw43_arch_init()) {                         // start the Wi-Fi chip (non-zero = failed)
         printf("Wi-Fi chip failed to start\n");      // report
@@ -835,7 +837,7 @@ int main(void) {                                     // program starts here
         if (time_reached(next_fsr)) {                // time for a new reading?
             next_fsr = make_timeout_time_ms(FSR_READ_MS);   // schedule the next one (50 ms)
             fsr_raw = fsr_read_raw();                // raw ADC value
-            fsr_units = fsr_read_units();            // value in 0-1000 units
+            fsr_units = fsr_read_smooth();           // 0-1000 units, smoothed, light touch = 0
         }                                            // end of FSR reading
 
         // Record when the page asked for it
@@ -847,7 +849,7 @@ int main(void) {                                     // program starts here
         // Measure mic loudness for the page's sound meter (10 ms burst)
         if (mic_ok && time_reached(next_mic)) {      // mic works and it's time to measure?
             next_mic = make_timeout_time_ms(MIC_READ_MS);   // schedule the next one (60 ms)
-            mic_level = mic_read_level(MIC_BURST);   // loudness over 160 samples
+            mic_level = mic_read_loudness(MIC_BURST);   // loudness above room noise, over 160 samples
         }                                            // end of mic measurement
 
         // Reward motor commands from the page

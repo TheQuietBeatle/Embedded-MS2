@@ -33,8 +33,8 @@
 
 #define MOTOR_TEST_SPEED 70      // percent
 
-#define MIC_QUIET       20u      // mic level shown as LED off  (tune from the serial output)
-#define MIC_LOUD        500u     // mic level shown as LED full
+#define MIC_QUIET       10u      // loudness (above room noise) shown as LED off  (tune from the serial output)
+#define MIC_LOUD        400u     // loudness shown as LED full
 
 // ---- Servos -----------------------------------------------------------------
 enum { WAIST, SHOULDER, ELBOW, WRIST_PITCH, WRIST_ROLL, GRIPPER, NUM_SERVOS };
@@ -143,14 +143,14 @@ int main(void) {
     test_motor();
 
     bool mic_ok = mic_init(PIN_MIC_ADC);
-    printf("[mic] %s (raw ADC %u, ~1551 = 1.25 V expected)\n",
+    printf("[mic] %s (raw ADC %u, ~1551 = 1.25 V expected; room noise floor %lu)\n",
            mic_ok ? "MAX9814 on ADC running" : "INIT FAILED (pin must be GP26-28)",
-           mic_ok ? mic_read_raw() : 0u);
+           mic_ok ? mic_read_raw() : 0u, mic_ok ? (unsigned long)mic_noise_floor() : 0ul);
 
     printf("[sensors] press the FSR (green) and talk/clap near the mic (red)\n");
     while (true) {
-        uint16_t force = fsr_read_units();                       // 0-1000
-        uint32_t loud  = mic_ok ? mic_read_level(1600) : 0;      // 1600 samples = 100 ms
+        uint16_t force = fsr_read_smooth();                      // 0-1000, smoothed, light touch = 0
+        uint32_t loud  = mic_ok ? mic_read_loudness(1600) : 0;   // 1600 samples = 100 ms, room noise removed
 
         uint8_t green = (uint8_t)(force * 255u / 1000u);
         uint8_t red   = mic_to_brightness(loud);
