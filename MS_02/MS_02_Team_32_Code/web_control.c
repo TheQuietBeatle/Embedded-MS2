@@ -42,7 +42,7 @@
 #endif                                             // end of the Wi-Fi config choice
 
 // ---- Tunable settings -------------------------------------------------------
-#define HOME_ANGLE       90.0f     // "Home" position for every joint, in degrees
+#define HOME_ANGLE       90.0f     // "Home" position for every joint except the gripper (it homes closed)
 #define HOME_GAP_MS      400u      // Pause between homing each joint at power-up (spreads the current draw)
 #define JOINT_MIN        5.0f      // Lowest angle a normal joint may go to (keeps servos off their hard stop)
 #define JOINT_MAX        175.0f    // Highest angle a normal joint may go to
@@ -87,6 +87,11 @@
 
 // ---- Joints -------------------------------------------------------------------
 enum { WAIST, SHOULDER, ELBOW, WRIST_PITCH, WRIST_ROLL, GRIPPER, NUM_JOINTS };   // joint numbers 0..5; NUM_JOINTS = 6 = how many
+
+// Home position of one joint: the gripper starts CLOSED, every other joint at 90 deg.
+static float home_angle(int joint) {
+    return joint == GRIPPER ? GRIPPER_CLOSED : HOME_ANGLE;
+}
 
 typedef struct {                   // fixed description of one joint
     const char *key;               // short id used in URLs, e.g. "elbow"
@@ -474,7 +479,7 @@ static void handle_request(http_conn_t *c, const char *req) {   // decide what t
             rec_state = REC_REQUESTED;                 // flag it; the main loop does the actual recording
         }                                              // end of record check
     } else if (strcmp(path, "/home") == 0) {           // /home: send every joint home
-        for (int i = 0; i < NUM_JOINTS; i++) set_target(i, HOME_ANGLE);   // all targets = 90 deg
+        for (int i = 0; i < NUM_JOINTS; i++) set_target(i, home_angle(i));   // joints to 90 deg, gripper closed
     } else if (strcmp(path, "/motor") == 0 && query && query_get(query, "speed", val, sizeof val)) { // /motor?speed=S&ms=T
         int speed = atoi(val);                         // requested speed
         int ms = query_get(query, "ms", val, sizeof val) ? atoi(val) : 0;   // requested run time (0 if missing)
@@ -789,7 +794,7 @@ int main(void) {                                     // program starts here
 
     for (int i = 0; i < NUM_JOINTS; i++) {   // home one joint at a time
         printf("Homing %s\n", joints[i].key);        // log which joint
-        servo_write(&servos[i], HOME_ANGLE);         // jump it to 90 deg (starts its PWM signal)
+        servo_write(&servos[i], home_angle(i));      // jump it home: 90 deg, gripper closed (starts its PWM signal)
         target[i] = servo_read(&servos[i]);          // its target = where it is now, so it stays there
         sleep_ms(HOME_GAP_MS);                       // wait before the next one (avoids a current spike)
     }                                                // end of homing loop

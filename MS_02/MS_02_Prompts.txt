@@ -110,3 +110,4 @@ Prompts used during coding and debugging (AI tool: Claude)
 9-	the gripper and wrist pitch (SG90, GP14) roll endlessly, and the sensors are too sensitive
 10-	can we replace the r g b lamps with red, yellow and green leds separate
 11-	i mean red then yellow then green for the gripping sensor
+12-	start the web page with the gripper closed
