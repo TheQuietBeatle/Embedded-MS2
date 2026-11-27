@@ -8,9 +8,9 @@
 #define PIN_SERVO_ELBOW           4u  // GP4 -> S3.SIG
 #define PIN_SERVO_WRIST_ROLL      5u  // GP5 -> S4.SIG (wrist ROLL servo now plugged here; was wrist pitch)
 
-#define PIN_LED_R                 6u  // GP6 -> R2.1
-#define PIN_LED_G                 7u  // GP7 -> R3.1
-#define PIN_LED_B                 8u  // GP8 -> R4.1
+#define PIN_LED_RED               6u  // GP6 -> 220R -> red LED
+#define PIN_LED_GREEN             7u  // GP7 -> 220R -> green LED
+#define PIN_LED_YELLOW            8u  // GP8 -> 220R -> yellow LED (where the RGB's blue was)
 
 
 #define PIN_SERVO_WRIST_PITCH    14u  // GP14 -> S5.SIG (wrist PITCH servo now plugged here; was wrist roll)

@@ -24,4 +24,11 @@ uint16_t fsr_read_units(void);
 // Voltage at the ADC pin in volts (0-3.3 V).
 float    fsr_read_voltage(void);
 
+// Calmer force value for the logic and the display, 0-1000 units:
+//  - smoothed over time (each call moves 1/4 of the way to the new reading,
+//    so one jumpy reading cannot flip the state)
+//  - anything below FSR_DEADBAND (a light brush) reads as 0
+// Call it at a steady rate (e.g. every 50 ms).
+uint16_t fsr_read_smooth(void);
+
 #endif // FSR_H

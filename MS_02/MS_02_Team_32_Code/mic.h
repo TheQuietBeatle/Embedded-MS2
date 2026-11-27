@@ -32,4 +32,13 @@ int32_t  mic_read_sample(void);
 // exact DC offset removed). Quiet room ~ 5-30, speech near the mic ~ 200-800.
 uint32_t mic_read_level(uint16_t n);
 
+// Room noise level measured by mic_init() (keep quiet for ~0.5 s at start-up).
+uint32_t mic_noise_floor(void);
+
+// Calmer loudness for the logic and the display:
+//  - the room's background noise (noise floor x MIC_FLOOR_MARGIN) is subtracted,
+//    so a quiet room reads 0
+//  - rises at once on a sound, falls back slowly (no flicker between readings)
+uint32_t mic_read_loudness(uint16_t n);
+
 #endif // MIC_H
