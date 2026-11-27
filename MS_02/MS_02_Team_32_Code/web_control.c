@@ -102,9 +102,9 @@ static const joint_info_t joints[NUM_JOINTS] = {                                
     {"waist",       "Waist (MG996R, GP0)",      PIN_SERVO_WAIST,       JOINT_MIN,    JOINT_MAX,       "&larr; Left", "Right &rarr;"}, // base rotation
     {"shoulder",    "Shoulder (MG996R, GP1)",   PIN_SERVO_SHOULDER,    JOINT_MIN,    JOINT_MAX,       "&darr; Down", "Up &uarr;"},    // shoulder lift
     {"elbow",       "Elbow (MG996R, GP4)",      PIN_SERVO_ELBOW,       JOINT_MIN,    JOINT_MAX,       "Up &uarr;", "&darr; Down"},    // elbow bend (smaller angle raises the arm)
-    {"wrist_pitch", "Wrist pitch (SG90, GP14)", PIN_SERVO_WRIST_PITCH, JOINT_MIN,    JOINT_MAX,       "&darr; Down", "Up &uarr;"},    // wrist up/down
+    {"wrist_pitch", "Wrist pitch (MG90S, GP14)", PIN_SERVO_WRIST_PITCH, JOINT_MIN,    JOINT_MAX,       "&darr; Down", "Up &uarr;"},    // wrist up/down
     {"wrist_roll",  "Wrist roll (SG90, GP5)",  PIN_SERVO_WRIST_ROLL,  JOINT_MIN,    JOINT_MAX,       "&#8634; Left", "Right &#8635;"}, // wrist twist (curved arrows)
-    {"gripper",     "Gripper (SG90, GP15)",     PIN_SERVO_GRIPPER,     GRIPPER_CLOSED, GRIPPER_OPEN,  "Close", "Open"},        // gripper range: lo = closed, hi = open (has its own buttons)
+    {"gripper",     "Gripper (MG90S, GP15)",     PIN_SERVO_GRIPPER,     GRIPPER_CLOSED, GRIPPER_OPEN,  "Close", "Open"},        // gripper range: lo = closed, hi = open (has its own buttons)
 };                                                                                                         // end of joint table
 
 static servo_t        servos[NUM_JOINTS];     // live state of each servo (driver data, current angle)

@@ -1,4 +1,4 @@
-// servo.c - Hobby servo driver (MG996R / SG90) for the RP2040, Pico SDK.
+// servo.c - Hobby servo driver (MG996R / MG90S / SG90) for the RP2040, Pico SDK.
 #include "servo.h"
 
 #include "pico/stdlib.h"

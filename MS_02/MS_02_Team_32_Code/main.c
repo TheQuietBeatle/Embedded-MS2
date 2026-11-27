@@ -71,7 +71,7 @@ static void test_servos(void) {
     for (int i = 0; i < NUM_SERVOS; i++) {
         servo_t *s = &servos[i];
         if (i == GRIPPER) {
-            // Gripper (SG90): fully open, then closed (0 = closed on this arm).
+            // Gripper (MG90S): fully open, then closed (0 = closed on this arm).
             printf("  gripper: open -> closed -> 90\n");
             servo_move_smooth(s, GRIPPER_OPEN,   STEP_DEG, STEP_MS);
             servo_move_smooth(s, GRIPPER_CLOSED, STEP_DEG, STEP_MS);

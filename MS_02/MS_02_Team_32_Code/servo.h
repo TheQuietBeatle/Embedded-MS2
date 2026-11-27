@@ -1,4 +1,4 @@
-// servo.h - Hobby servo driver (MG996R / SG90) for the RP2040, Pico SDK.
+// servo.h - Hobby servo driver (MG996R / MG90S / SG90) for the RP2040, Pico SDK.
 //
 // 50 Hz PWM, 1 tick = 1 us, pulse 500-2500 us for 0-180 deg.
 // Each servo has its own angle limits; every write is clamped to them.
