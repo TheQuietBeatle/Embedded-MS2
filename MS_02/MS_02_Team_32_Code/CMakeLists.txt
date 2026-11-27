@@ -35,7 +35,7 @@ add_executable(ms02_neural_calibrator
     main.c
     servo.c
     fsr.c
-    rgb_led.c
+    leds.c
     motor.c
     mic.c
 )

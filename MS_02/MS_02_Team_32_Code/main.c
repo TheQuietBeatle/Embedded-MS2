@@ -3,11 +3,12 @@
 // Actuators (run once at start-up, then the sensor loop starts):
 //   1. Servos   - home all six to 90 deg one at a time, then sweep each joint
 //                 inside its limits at 2 deg / 20 ms.
-//   2. LEDs     - red, green, blue, red+green, then all three fade up and down.
+//   2. LEDs     - red, yellow, green one at a time, then all three fade up and down.
 //   3. Motor    - ramp forward to 70 %, back to 0, ramp reverse to 70 %, brake.
 // Sensors (forever, verified on the LEDs as the brief asks):
-//   - FSR force    -> GREEN LED brightness (press harder = brighter)
-//   - Mic loudness -> RED LED brightness   (talk or clap = brighter)
+//   - FSR force    -> GREEN LED brightness  (press harder = brighter)
+//                     RED LED on above FSR_SAFETY (too much force)
+//   - Mic loudness -> YELLOW LED brightness (talk or clap = brighter)
 //   Both values are also printed over USB serial every ~100 ms.
 
 #include <stdio.h>
@@ -16,7 +17,7 @@
 #include "pins.h"
 #include "servo.h"
 #include "fsr.h"
-#include "rgb_led.h"
+#include "leds.h"
 #include "motor.h"
 #include "mic.h"
 
@@ -33,6 +34,7 @@
 
 #define MOTOR_TEST_SPEED 70      // percent
 
+#define FSR_SAFETY      400u     // force (0-1000) that lights the red LED - same limit as the web page
 #define MIC_QUIET       10u      // loudness (above room noise) shown as LED off  (tune from the serial output)
 #define MIC_LOUD        400u     // loudness shown as LED full
 
@@ -81,16 +83,15 @@ static void test_servos(void) {
     }
 }
 
-// ---- RGB LED ----------------------------------------------------------------
-static void test_rgb_led(void) {
-    printf("[led] red, green, blue, yellow, white fade\n");
-    rgb_led_set(RGB_RED);    sleep_ms(500);
-    rgb_led_set(RGB_GREEN);  sleep_ms(500);
-    rgb_led_set(RGB_BLUE);   sleep_ms(500);
-    rgb_led_set(RGB_YELLOW); sleep_ms(500);
-    for (int v = 0; v <= 255; v += 5)  { rgb_led_set((uint8_t)v, (uint8_t)v, (uint8_t)v); sleep_ms(10); }
-    for (int v = 255; v >= 0; v -= 5)  { rgb_led_set((uint8_t)v, (uint8_t)v, (uint8_t)v); sleep_ms(10); }
-    rgb_led_off();
+// ---- LEDs -------------------------------------------------------------------
+static void test_leds(void) {
+    printf("[led] red, yellow, green, then fade\n");
+    leds_set(255, 0, 0); sleep_ms(500);
+    leds_set(0, 255, 0); sleep_ms(500);
+    leds_set(0, 0, 255); sleep_ms(500);
+    for (int v = 0; v <= 255; v += 5)  { leds_set((uint8_t)v, (uint8_t)v, (uint8_t)v); sleep_ms(10); }
+    for (int v = 255; v >= 0; v -= 5)  { leds_set((uint8_t)v, (uint8_t)v, (uint8_t)v); sleep_ms(10); }
+    leds_off();
 }
 
 // ---- Motor ------------------------------------------------------------------
@@ -131,7 +132,7 @@ int main(void) {
 
     // Actuators off before anything else moves
     motor_init(PIN_MOTOR_IN1, PIN_MOTOR_IN2, PIN_MOTOR_ENA);
-    rgb_led_init(PIN_LED_R, PIN_LED_G, PIN_LED_B);
+    leds_init(PIN_LED_RED, PIN_LED_YELLOW, PIN_LED_GREEN);
     servos_init();
     fsr_init(PIN_FSR_ADC);
 
@@ -139,7 +140,7 @@ int main(void) {
     printf("\n=== Neural Calibrator - MS2 driver test ===\n");
 
     test_servos();
-    test_rgb_led();
+    test_leds();
     test_motor();
 
     bool mic_ok = mic_init(PIN_MIC_ADC);
@@ -147,17 +148,18 @@ int main(void) {
            mic_ok ? "MAX9814 on ADC running" : "INIT FAILED (pin must be GP26-28)",
            mic_ok ? mic_read_raw() : 0u, mic_ok ? (unsigned long)mic_noise_floor() : 0ul);
 
-    printf("[sensors] press the FSR (green) and talk/clap near the mic (red)\n");
+    printf("[sensors] press the FSR (green, red = too hard) and talk/clap near the mic (yellow)\n");
     while (true) {
         uint16_t force = fsr_read_smooth();                      // 0-1000, smoothed, light touch = 0
         uint32_t loud  = mic_ok ? mic_read_loudness(1600) : 0;   // 1600 samples = 100 ms, room noise removed
 
-        uint8_t green = (uint8_t)(force * 255u / 1000u);
-        uint8_t red   = mic_to_brightness(loud);
-        rgb_led_set(red, green, 0);
+        uint8_t green  = (uint8_t)(force * 255u / 1000u);
+        uint8_t red    = force >= FSR_SAFETY ? 255 : 0;
+        uint8_t yellow = mic_to_brightness(loud);
+        leds_set(red, yellow, green);
 
-        printf("FSR raw %4u  units %4u  |  mic level %4lu  ->  LED R%3u G%3u\n",
-               fsr_read_raw(), force, (unsigned long)loud, red, green);
+        printf("FSR raw %4u  units %4u  |  mic level %4lu  ->  LED R%3u Y%3u G%3u\n",
+               fsr_read_raw(), force, (unsigned long)loud, red, yellow, green);
         if (!mic_ok) sleep_ms(100);
     }
 }
