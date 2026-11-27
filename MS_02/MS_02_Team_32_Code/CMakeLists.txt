@@ -65,6 +65,7 @@ add_executable(ms02_web_control
     dhcp_server.c
     servo.c
     motor.c
+    leds.c
     fsr.c
     mic.c
 )

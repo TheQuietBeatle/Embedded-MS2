@@ -6,9 +6,10 @@
 //   2. LEDs     - red, yellow, green one at a time, then all three fade up and down.
 //   3. Motor    - ramp forward to 70 %, back to 0, ramp reverse to 70 %, brake.
 // Sensors (forever, verified on the LEDs as the brief asks):
-//   - FSR force    -> GREEN LED brightness  (press harder = brighter)
-//                     RED LED on above FSR_SAFETY (too much force)
-//   - Mic loudness -> YELLOW LED brightness (talk or clap = brighter)
+//   - FSR force    -> grip traffic light: RED (light) -> YELLOW (close) -> GREEN (good),
+//                     flashing RED above FSR_SAFETY (too hard)
+//   - Mic loudness -> while the FSR is NOT pressed, the LEDs are a sound meter:
+//                     GREEN (some sound) -> +YELLOW (louder) -> +RED (loud)
 //   Both values are also printed over USB serial every ~100 ms.
 
 #include <stdio.h>
@@ -34,7 +35,9 @@
 
 #define MOTOR_TEST_SPEED 70      // percent
 
-#define FSR_SAFETY      400u     // force (0-1000) that lights the red LED - same limit as the web page
+#define FSR_YELLOW_AT   100u     // force (0-1000) where the grip light turns yellow
+#define FSR_GREEN_AT    175u     // ... turns green (= start of the web page's hold zone)
+#define FSR_SAFETY      400u     // ... flashes red (= the web page's safety limit)
 #define MIC_QUIET       10u      // loudness (above room noise) shown as LED off  (tune from the serial output)
 #define MIC_LOUD        400u     // loudness shown as LED full
 
@@ -121,10 +124,12 @@ static void test_motor(void) {
 }
 
 // ---- Sensors -> LED -----------------------------------------------------------
-static uint8_t mic_to_brightness(uint32_t level) {
-    if (level <= MIC_QUIET) return 0;
-    if (level >= MIC_LOUD)  return 255;
-    return (uint8_t)((level - MIC_QUIET) * 255u / (MIC_LOUD - MIC_QUIET));
+// Sound meter on the three LEDs (bar graph): green, then +yellow, then +red.
+static void leds_sound_meter(uint32_t level) {
+    uint8_t green  = level > MIC_QUIET          ? 255 : 0;
+    uint8_t yellow = level > MIC_LOUD / 3u      ? 255 : 0;
+    uint8_t red    = level > MIC_LOUD * 2u / 3u ? 255 : 0;
+    leds_set(red, yellow, green);
 }
 
 int main(void) {
@@ -148,18 +153,19 @@ int main(void) {
            mic_ok ? "MAX9814 on ADC running" : "INIT FAILED (pin must be GP26-28)",
            mic_ok ? mic_read_raw() : 0u, mic_ok ? (unsigned long)mic_noise_floor() : 0ul);
 
-    printf("[sensors] press the FSR (green, red = too hard) and talk/clap near the mic (yellow)\n");
+    printf("[sensors] press the FSR (red -> yellow -> green, flashing red = too hard); let go and talk/clap for the sound meter\n");
     while (true) {
         uint16_t force = fsr_read_smooth();                      // 0-1000, smoothed, light touch = 0
         uint32_t loud  = mic_ok ? mic_read_loudness(1600) : 0;   // 1600 samples = 100 ms, room noise removed
 
-        uint8_t green  = (uint8_t)(force * 255u / 1000u);
-        uint8_t red    = force >= FSR_SAFETY ? 255 : 0;
-        uint8_t yellow = mic_to_brightness(loud);
-        leds_set(red, yellow, green);
+        if (force > 0) {
+            leds_grip(force, FSR_YELLOW_AT, FSR_GREEN_AT, FSR_SAFETY);   // gripping: traffic light
+        } else {
+            leds_sound_meter(loud);                                       // not gripping: sound meter
+        }
 
-        printf("FSR raw %4u  units %4u  |  mic level %4lu  ->  LED R%3u Y%3u G%3u\n",
-               fsr_read_raw(), force, (unsigned long)loud, red, yellow, green);
+        printf("FSR raw %4u  units %4u  |  mic level %4lu\n",
+               fsr_read_raw(), force, (unsigned long)loud);
         if (!mic_ok) sleep_ms(100);
     }
 }

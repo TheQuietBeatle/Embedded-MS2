@@ -41,3 +41,18 @@ void leds_set(uint8_t red, uint8_t yellow, uint8_t green) {
 void leds_off(void) {
     leds_set(0, 0, 0);
 }
+
+void leds_grip(uint16_t force, uint16_t yellow_at, uint16_t green_at, uint16_t danger_at) {
+    if (force == 0) {
+        leds_off();
+    } else if (force < yellow_at) {
+        leds_set(255, 0, 0);                                    // red
+    } else if (force < green_at) {
+        leds_set(0, 255, 0);                                    // yellow
+    } else if (force < danger_at) {
+        leds_set(0, 0, 255);                                    // green
+    } else {
+        bool on = (to_ms_since_boot(get_absolute_time()) / 150u) % 2u == 0u;   // 150 ms on, 150 ms off
+        leds_set(on ? 255 : 0, 0, 0);                           // flashing red
+    }
+}

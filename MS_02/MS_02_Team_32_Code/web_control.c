@@ -30,6 +30,7 @@
 #include "servo.h"                 // Servo driver: servo_init / servo_write / servo_read / servo_step_toward
 #include "motor.h"                 // DC reward-motor driver (L298N): motor_set / motor_coast / motor_get
 #include "fsr.h"                   // Force-sensitive resistor (grip pressure) driver
+#include "leds.h"                  // Red / yellow / green grip lights
 #include "mic.h"                   // MAX9814 analog microphone driver (ADC)
 #include "dhcp_server.h"           // Small DHCP server that hands out IPs on the Pico's own network
 
@@ -57,6 +58,7 @@
 #define FSR_ZONE_LO      175       // hold zone, shown green on the page
 #define FSR_ZONE_HI      185       // upper edge of the green hold zone
 #define FSR_SAFETY       400       // shown red: the gripper should back off above this
+#define FSR_YELLOW_AT    100       // grip LEDs: red below this, yellow from here, green from FSR_ZONE_LO
 #define FSR_BAR_MAX      500       // full width of the page's bar
 #define FSR_READ_MS      50u       // how often the main loop samples the FSR
 
@@ -773,6 +775,7 @@ int main(void) {                                     // program starts here
 
     motor_init(PIN_MOTOR_IN1, PIN_MOTOR_IN2, PIN_MOTOR_ENA);   // motor off first
     fsr_init(PIN_FSR_ADC);                           // set up the ADC pin for the pressure sensor
+    leds_init(PIN_LED_RED, PIN_LED_YELLOW, PIN_LED_GREEN);   // grip lights, all off
     for (int i = 0; i < NUM_JOINTS; i++) {           // for every joint...
         servo_init(&servos[i], joints[i].pin, joints[i].lo, joints[i].hi);   // silent
     }                                                // end of servo setup
@@ -838,6 +841,7 @@ int main(void) {                                     // program starts here
             next_fsr = make_timeout_time_ms(FSR_READ_MS);   // schedule the next one (50 ms)
             fsr_raw = fsr_read_raw();                // raw ADC value
             fsr_units = fsr_read_smooth();           // 0-1000 units, smoothed, light touch = 0
+            leds_grip(fsr_units, FSR_YELLOW_AT, FSR_ZONE_LO, FSR_SAFETY);   // red -> yellow -> green, flashing red if too hard
         }                                            // end of FSR reading
 
         // Record when the page asked for it
