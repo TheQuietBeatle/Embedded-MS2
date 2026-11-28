@@ -34,6 +34,7 @@ pico_sdk_init()
 add_executable(ms02_neural_calibrator
     main.c
     servo.c
+    gripper.c
     fsr.c
     leds.c
     motor.c
@@ -64,6 +65,7 @@ add_executable(ms02_web_control
     web_control.c
     dhcp_server.c
     servo.c
+    gripper.c
     motor.c
     leds.c
     fsr.c

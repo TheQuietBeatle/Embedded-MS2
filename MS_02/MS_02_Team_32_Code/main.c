@@ -17,6 +17,7 @@
 
 #include "pins.h"
 #include "servo.h"
+#include "gripper.h"
 #include "fsr.h"
 #include "leds.h"
 #include "motor.h"
@@ -27,8 +28,8 @@
 #define HOME_GAP_MS     400u     // pause between homing one joint and the next
 #define JOINT_MIN       5.0f     // waist / shoulder / elbow / wrist limits
 #define JOINT_MAX       175.0f
-#define GRIPPER_CLOSED  0.0f     // gripper limits (0 = closed on this arm)
-#define GRIPPER_OPEN    120.0f
+// Gripper limits are in gripper.h (microseconds, bigger pulse = more open)
+#define GRIPPER_STEP_US 22u      // gripper test: at most 22 us every STEP_MS (~2 deg)
 #define SWEEP_SPAN      30.0f   // test sweep: 90 -> 90-span -> 90+span -> 90
 #define STEP_DEG        2.0f     // at most 2 deg ...
 #define STEP_MS         20u      // ... every 20 ms
@@ -47,7 +48,14 @@ enum { WAIST, SHOULDER, ELBOW, WRIST_PITCH, WRIST_ROLL, GRIPPER, NUM_SERVOS };
 static const char *servo_name[NUM_SERVOS] = {
     "waist", "shoulder", "elbow", "wrist pitch", "wrist roll", "gripper"
 };
-static servo_t servos[NUM_SERVOS];
+static servo_t servos[NUM_SERVOS];   // servos[GRIPPER] is unused: the gripper is driven by gripper.c
+
+// Blocking smooth gripper move, through gripper_set_us() (clamped).
+static void gripper_move_smooth(int32_t target_us) {
+    while (!gripper_step_toward(target_us, GRIPPER_STEP_US)) {
+        sleep_ms(STEP_MS);
+    }
+}
 
 static void servos_init(void) {
     // All outputs stay silent here; homing below powers them one at a time.
@@ -56,34 +64,43 @@ static void servos_init(void) {
     servo_init(&servos[ELBOW],       PIN_SERVO_ELBOW,       JOINT_MIN, JOINT_MAX);
     servo_init(&servos[WRIST_PITCH], PIN_SERVO_WRIST_PITCH, JOINT_MIN, JOINT_MAX);
     servo_init(&servos[WRIST_ROLL],  PIN_SERVO_WRIST_ROLL,  JOINT_MIN, JOINT_MAX);
-    servo_init(&servos[GRIPPER],     PIN_SERVO_GRIPPER,     GRIPPER_CLOSED, GRIPPER_OPEN);
+    gripper_init(PIN_SERVO_GRIPPER);
 }
 
 static void test_servos(void) {
     printf("[servo] homing one joint at a time\n");
     for (int i = 0; i < NUM_SERVOS; i++) {
-        printf("  %s -> %.0f deg\n", servo_name[i], HOME_ANGLE);
-        servo_write(&servos[i], HOME_ANGLE);
+        if (i == GRIPPER) {
+            printf("  gripper -> %u us (centre)\n", gripper_set_us(GRIPPER_CENTRE_US));
+        } else {
+            printf("  %s -> %.0f deg\n", servo_name[i], HOME_ANGLE);
+            servo_write(&servos[i], HOME_ANGLE);
+        }
         sleep_ms(HOME_GAP_MS);
     }
 
     printf("[servo] sweeping each joint\n");
     for (int i = 0; i < NUM_SERVOS; i++) {
-        servo_t *s = &servos[i];
         if (i == GRIPPER) {
-            // Gripper (MG90S): fully open, then closed (0 = closed on this arm).
-            printf("  gripper: open -> closed -> 90\n");
-            servo_move_smooth(s, GRIPPER_OPEN,   STEP_DEG, STEP_MS);
-            servo_move_smooth(s, GRIPPER_CLOSED, STEP_DEG, STEP_MS);
-        } else {
-            printf("  %s: %.0f -> %.0f -> 90\n", servo_name[i],
-                   HOME_ANGLE - SWEEP_SPAN, HOME_ANGLE + SWEEP_SPAN);
-            servo_move_smooth(s, HOME_ANGLE - SWEEP_SPAN, STEP_DEG, STEP_MS);
-            servo_move_smooth(s, HOME_ANGLE + SWEEP_SPAN, STEP_DEG, STEP_MS);
+            // Gripper (MG90S): open -> closed -> centre, all clamped in gripper.c.
+            printf("  gripper: %u us (open) -> %u us (closed) -> %u us\n",
+                   GRIPPER_OPEN_US, GRIPPER_CLOSE_US, GRIPPER_CENTRE_US);
+            gripper_move_smooth(GRIPPER_OPEN_US);
+            gripper_move_smooth(GRIPPER_CLOSE_US);
+            gripper_move_smooth(GRIPPER_CENTRE_US);
+            printf("    now at %u us\n", gripper_get_us());
+            continue;
         }
+        servo_t *s = &servos[i];
+        printf("  %s: %.0f -> %.0f -> 90\n", servo_name[i],
+               HOME_ANGLE - SWEEP_SPAN, HOME_ANGLE + SWEEP_SPAN);
+        servo_move_smooth(s, HOME_ANGLE - SWEEP_SPAN, STEP_DEG, STEP_MS);
+        servo_move_smooth(s, HOME_ANGLE + SWEEP_SPAN, STEP_DEG, STEP_MS);
         servo_move_smooth(s, HOME_ANGLE, STEP_DEG, STEP_MS);
         printf("    now at %.0f deg\n", servo_read(s));
     }
+    gripper_release();   // test done, arm idle from here on: no gripper pulses
+    printf("[servo] gripper released (no pulses)\n");
 }
 
 // ---- LEDs -------------------------------------------------------------------
