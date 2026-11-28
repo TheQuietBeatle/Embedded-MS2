@@ -1,0 +1,80 @@
+CSEN701 Embedded Systems Architecture - Milestone 2
+Team 32 - The Neural Calibrator (Theme 2: Robotic Arm, Raspberry Pi Pico W)
+Work split and AI use per team member (AI tool: Claude)
+Prompt numbers refer to MS_02_Prompts.txt.
+=====================================================================
+
+--- Person 1: George Sameh - Arm actuation ---
+
+Files (MS_02_Team_32_Code/):
+  motor.c / motor.h      L298N DC motor driver (reward motor)
+  servo.c / servo.h      Servo driver for all six joints: waist, shoulder,
+                         elbow, wrist roll, wrist pitch (MG90S) and
+                         gripper (MG90S)
+  gripper.c / gripper.h  Gripper open/close logic and homing closed
+  pins.h                 Motor and servo pin definitions
+                         (servos GP0, GP1, GP4, GP5, GP14, GP15;
+                          motor IN1/IN2/ENA GP16-GP18)
+
+AI prompts used:
+  1.1  Wiring package and pin map (servo and motor part)
+  1.3  Separate 5V 3A servo supply and common ground check
+  2.1  Servo and L298N motor drivers (.h/.c pairs)
+  2.2  Servo homing and sweep test; motor forward/reverse/brake ramp
+  2.4  Converting pins.py into the C pins.h
+  3.5  ImportError: can't import name PIN_ELBOW (servo test)
+  7    Wiring everything safely without damaging anything
+  9    Gripper and wrist pitch servos rolling endlessly
+  12   Gripper starts closed at power-up (gripper side)
+
+--- Person 2: Sensing, feedback and calibration ---
+
+Files (MS_02_Team_32_Code/):
+  fsr.c / fsr.h          FSR 402 force sensor driver
+  mic.c / mic.h          MAX9814 analog mic driver (ADC on GP27)
+  leds.c / leds.h        FSR-driven red/yellow/green grip traffic light
+  ms02_neural_calibrator.uf2  Built firmware image
+  pins.h                 FSR, mic and LED pin definitions
+                         (LEDs GP6-GP8, FSR GP26, mic GP27)
+
+AI prompts used:
+  2.1  FSR, LED and mic drivers (.h/.c pairs)
+  2.2  LED test and sensor verification (FSR and mic readings)
+  2.6  Recording 3 s of audio from the mic
+  3.3  i2s_in.pio.h not found (old INMP441 driver)
+  3.6  INMP441 mic gives no output
+  8    Replacing the INMP441 with the MAX9814 analog mic
+  9    Sensors too sensitive (FSR and mic smoothing)
+  10   Replacing the RGB LED with separate red, yellow and green LEDs
+  11   Red -> yellow -> green order for the grip sensor
+
+--- Person 3: Networking, web control and build/integration ---
+
+Files (MS_02_Team_32_Code/):
+  web_control.c          Pico W web page and arm control
+  dhcp_server.c / dhcp_server.h  DHCP server for the Pico's own network
+  lwipopts.h             lwIP network stack options
+  wifi_config.example.h  Wi-Fi credentials template
+  main.c                 Integration and init order
+  CMakeLists.txt         Pico SDK build
+  pico_sdk_import.cmake  Pico SDK import
+  .clangd, .vscode/      Editor and build setup
+
+AI prompts used:
+  2.3  CMakeLists.txt for the Pico SDK build
+  2.5  Grip-pressure indicator and mic test on the web page
+  2.6  Serving the recording as a WAV file from the web page
+  3.1  Task 'Compile Project' not found (VS Code tasks.json)
+  3.2  VS Code red errors in every file
+  3.4  clangd unused-include hints
+  5    Pico W web page: riddle screen, Start, grip meter, open/close
+  6    Starter code for the main states (main.c)
+  12   Web page starts with the gripper closed (web side)
+
+--- Shared by the whole team ---
+
+  1-4  Project explanation, components, milestones, test order
+  1.2  Schematik prompt that locks the pins
+  4.1-4.2  Stateflow model (MS_02_Team_32_Diagram.slx)
+  5.1-5.2  Video requirements and voice-over script
+           (MS_02_Team_32_Video.mp4)
