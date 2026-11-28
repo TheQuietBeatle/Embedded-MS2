@@ -30,15 +30,15 @@ Run (laptop connected to the Pico's "NeuralCalibrator" Wi-Fi):
   python voice_unlock.py --report             # also send the result to the Pico
 """
 
-import argparse
-import io
-import json
-import sys
-import time
-import wave
+import argparse                         # command-line options
+import io                               # in-memory files for WAV data
+import json                             # grammar for Vosk and its results
+import sys                              # exit code
+import time                             # sleep and timeouts
+import wave                             # read and write WAV files
 
-import numpy as np
-import requests
+import numpy as np                      # audio sample maths
+import requests                         # HTTP client
 
 SAMPLE_RATE = 16000          # the Pico records at 16 kHz; Vosk models expect 16 kHz too
 RECORD_SECONDS = 3           # matches REC_SECONDS in web_control.c
@@ -50,182 +50,182 @@ READY_TIMEOUT = 8.0          # max wait for the Pico to finish recording
 SILENCE_RMS = 300            # 16-bit RMS below this = nobody spoke
 MIN_CONFIDENCE = 0.60        # Vosk word confidence needed to accept the answer
 
-CORRECT, WRONG, UNCLEAR, NO_SPEECH = "correct", "wrong", "unclear", "no_speech"
+CORRECT, WRONG, UNCLEAR, NO_SPEECH = "correct", "wrong", "unclear", "no_speech"  # the four possible results
 
 
 # ---------------------------------------------------------------- Pico communication
-def http_get(url, **kw):
+def http_get(url, **kw):                # kw = extra options passed to requests.get
     """GET with retries, so one dropped Wi-Fi packet doesn't fail the whole attempt."""
-    last = None
-    for attempt in range(1, HTTP_RETRIES + 1):
-        try:
-            r = requests.get(url, timeout=HTTP_TIMEOUT, **kw)
-            r.raise_for_status()
-            return r
-        except requests.RequestException as e:
-            last = e
-            time.sleep(0.3 * attempt)
-    raise ConnectionError(f"Pico not reachable at {url}: {last}")
+    last = None                         # last error seen
+    for attempt in range(1, HTTP_RETRIES + 1):          # try a few times
+        try:                            # the request may fail
+            r = requests.get(url, timeout=HTTP_TIMEOUT, **kw)           # send it
+            r.raise_for_status()        # treat HTTP errors (404...) as failures
+            return r                    # success
+        except requests.RequestException as e:          # timeout, no connection, HTTP error...
+            last = e                    # remember it for the message
+            time.sleep(0.3 * attempt)   # wait a bit longer after each failure
+    raise ConnectionError(f"Pico not reachable at {url}: {last}")       # all tries failed
 
 
-def record_on_pico(pico):
+def record_on_pico(pico):               # pico = base address, e.g. http://192.168.4.1
     """Ask the Pico to record, wait until it's ready, return the WAV bytes."""
-    before = http_get(f"{pico}/state").json()
-    if not before.get("mic", {}).get("ok", False):
-        raise RuntimeError("Pico reports the microphone is not working (mic.ok = false)")
-    old_id = before.get("rec", {}).get("id")
+    before = http_get(f"{pico}/state").json()           # state before recording
+    if not before.get("mic", {}).get("ok", False):      # did the mic start?
+        raise RuntimeError("Pico reports the microphone is not working (mic.ok = false)")  # no point in recording
+    old_id = before.get("rec", {}).get("id")            # id of the previous recording
 
-    http_get(f"{pico}/record")
-    print(f"Recording {RECORD_SECONDS} s on the arm's mic... speak now")
+    http_get(f"{pico}/record")          # start recording
+    print(f"Recording {RECORD_SECONDS} s on the arm's mic... speak now")  # tell the player
 
-    deadline = time.time() + READY_TIMEOUT
-    while time.time() < deadline:
-        rec = http_get(f"{pico}/state").json().get("rec", {})
-        if rec.get("state") == "ready" and rec.get("id") != old_id:
-            return http_get(f"{pico}/audio.wav", params={"id": rec["id"]}).content
-        time.sleep(0.2)
-    raise TimeoutError("Pico did not finish the recording in time")
+    deadline = time.time() + READY_TIMEOUT              # when to give up
+    while time.time() < deadline:       # poll until then
+        rec = http_get(f"{pico}/state").json().get("rec", {})           # current recording status
+        if rec.get("state") == "ready" and rec.get("id") != old_id:     # finished, and it's a new one
+            return http_get(f"{pico}/audio.wav", params={"id": rec["id"]}).content  # download it
+        time.sleep(0.2)                 # wait before asking again
+    raise TimeoutError("Pico did not finish the recording in time")     # took too long
 
 
-def record_on_laptop():
+def record_on_laptop():                 # used by --source laptop
     """Fallback for testing at home: record from the laptop's own mic."""
     import sounddevice as sd  # only needed for this mode
 
-    print(f"Recording {RECORD_SECONDS} s on the laptop mic... speak now")
-    audio = sd.rec(RECORD_SECONDS * SAMPLE_RATE, samplerate=SAMPLE_RATE,
-                   channels=1, dtype="int16")
-    sd.wait()
-    buf = io.BytesIO()
-    with wave.open(buf, "wb") as w:
-        w.setnchannels(1)
-        w.setsampwidth(2)
-        w.setframerate(SAMPLE_RATE)
-        w.writeframes(audio.tobytes())
-    return buf.getvalue()
+    print(f"Recording {RECORD_SECONDS} s on the laptop mic... speak now")  # tell the player
+    audio = sd.rec(RECORD_SECONDS * SAMPLE_RATE, samplerate=SAMPLE_RATE,  # start recording in the background
+                   channels=1, dtype="int16")           # 16-bit mono, like the Pico
+    sd.wait()                           # wait until it has finished
+    buf = io.BytesIO()                  # WAV file in memory
+    with wave.open(buf, "wb") as w:     # write a WAV into it
+        w.setnchannels(1)               # mono
+        w.setsampwidth(2)               # 2 bytes = 16 bits per sample
+        w.setframerate(SAMPLE_RATE)     # 16 kHz
+        w.writeframes(audio.tobytes())  # the samples
+    return buf.getvalue()               # the whole file as bytes
 
 
-def report_to_pico(pico, result):
+def report_to_pico(pico, result):       # result = one of the four result strings
     """Tell the Pico the result. Needs a /unlock endpoint in web_control.c (Person 3)."""
-    try:
-        http_get(f"{pico}/unlock", params={"result": result})
-        print(f"Reported '{result}' to the Pico")
-    except ConnectionError as e:
-        print(f"Could not report to the Pico ({e}). Is /unlock implemented yet?")
+    try:                                # reporting is optional: don't crash
+        http_get(f"{pico}/unlock", params={"result": result})           # send the result
+        print(f"Reported '{result}' to the Pico")       # confirm it
+    except ConnectionError as e:        # all retries failed
+        print(f"Could not report to the Pico ({e}). Is /unlock implemented yet?")  # warn and carry on
 
 
 # ---------------------------------------------------------------- recognition
-def load_wav(wav_bytes):
+def load_wav(wav_bytes):                # wav_bytes = a whole WAV file
     """Return int16 samples, checking the format is what Vosk needs."""
-    with wave.open(io.BytesIO(wav_bytes), "rb") as w:
-        if w.getnchannels() != 1 or w.getsampwidth() != 2:
-            raise ValueError("expected 16-bit mono WAV")
-        if w.getframerate() != SAMPLE_RATE:
-            raise ValueError(f"expected {SAMPLE_RATE} Hz, got {w.getframerate()} Hz")
-        return np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
+    with wave.open(io.BytesIO(wav_bytes), "rb") as w:   # open it from memory
+        if w.getnchannels() != 1 or w.getsampwidth() != 2:              # must be 16-bit mono
+            raise ValueError("expected 16-bit mono WAV")                # reject anything else
+        if w.getframerate() != SAMPLE_RATE:             # must be 16 kHz
+            raise ValueError(f"expected {SAMPLE_RATE} Hz, got {w.getframerate()} Hz")  # reject anything else
+        return np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)  # bytes -> int16 array
 
 
-def load_model(path):
-    from vosk import Model, SetLogLevel
+def load_model(path):                   # path = folder of the Vosk model
+    from vosk import Model, SetLogLevel                 # imported only when recognition is needed
 
     SetLogLevel(-1)  # hide Kaldi's start-up log
-    try:
-        return Model(path)
-    except Exception as e:
-        sys.exit(f"Could not load the Vosk model from '{path}': {e}\n"
-                 "Download vosk-model-small-en-us-0.15 and unzip it next to this script.")
+    try:                                # the folder may be missing
+        return Model(path)              # load the model
+    except Exception as e:              # any loading problem
+        sys.exit(f"Could not load the Vosk model from '{path}': {e}\n"  # explain it and quit...
+                 "Download vosk-model-small-en-us-0.15 and unzip it next to this script.")  # ...saying how to fix it
 
 
-def recognise(model, samples, answer):
+def recognise(model, samples, answer):  # answer = the word we hope to hear
     """Return (heard_text, confidence_of_answer_word or 0)."""
-    from vosk import KaldiRecognizer
+    from vosk import KaldiRecognizer    # the recogniser class
 
     # Grammar mode: the recogniser may only output the answer word or [unk].
     # This makes a tiny vocabulary problem: much more reliable than free speech,
     # especially with accents and a cheap mic.
-    rec = KaldiRecognizer(model, SAMPLE_RATE, json.dumps([answer, "[unk]"]))
-    rec.SetWords(True)
-    rec.AcceptWaveform(samples.tobytes())
-    out = json.loads(rec.FinalResult())
+    rec = KaldiRecognizer(model, SAMPLE_RATE, json.dumps([answer, "[unk]"]))  # only two possible outputs
+    rec.SetWords(True)                  # also report a confidence per word
+    rec.AcceptWaveform(samples.tobytes())               # feed it all the audio
+    out = json.loads(rec.FinalResult())                 # get the final result as a dict
 
-    best = 0.0
-    for w in out.get("result", []):
-        if w.get("word") == answer:
-            best = max(best, float(w.get("conf", 0.0)))
-    return out.get("text", ""), best
+    best = 0.0                          # best confidence so far
+    for w in out.get("result", []):     # every word it heard
+        if w.get("word") == answer:     # is it the answer?
+            best = max(best, float(w.get("conf", 0.0)))                 # keep the highest confidence
+    return out.get("text", ""), best    # text heard, and confidence
 
 
-def decide(model, wav_bytes, answer, verbose=False):
-    samples = load_wav(wav_bytes)
+def decide(model, wav_bytes, answer, verbose=False):    # returns (result, text heard, confidence)
+    samples = load_wav(wav_bytes)       # WAV -> samples
     # Remove any DC offset left in the recording, then measure loudness.
-    centred = samples.astype(np.float64) - samples.mean()
-    rms = float(np.sqrt(np.mean(centred ** 2))) if len(centred) else 0.0
-    if verbose:
-        print(f"  audio RMS = {rms:.0f} (silence below {SILENCE_RMS})")
-    if rms < SILENCE_RMS:
-        return NO_SPEECH, "", 0.0
+    centred = samples.astype(np.float64) - samples.mean()               # centre the samples on 0
+    rms = float(np.sqrt(np.mean(centred ** 2))) if len(centred) else 0.0  # loudness (0 if empty)
+    if verbose:                         # debug output wanted?
+        print(f"  audio RMS = {rms:.0f} (silence below {SILENCE_RMS})")  # show the loudness
+    if rms < SILENCE_RMS:               # too quiet
+        return NO_SPEECH, "", 0.0       # nobody spoke
 
-    text, conf = recognise(model, samples, answer)
-    if verbose:
-        print(f"  heard = '{text}', confidence for '{answer}' = {conf:.2f}")
+    text, conf = recognise(model, samples, answer)      # run the speech recognition
+    if verbose:                         # debug output wanted?
+        print(f"  heard = '{text}', confidence for '{answer}' = {conf:.2f}")  # show what was heard
 
-    if conf >= MIN_CONFIDENCE:
-        return CORRECT, text, conf
+    if conf >= MIN_CONFIDENCE:          # sure enough
+        return CORRECT, text, conf      # right answer
     if conf > 0:                     # model thinks it might be the answer, but isn't sure
-        return UNCLEAR, text, conf
+        return UNCLEAR, text, conf      # ask the player to repeat
     return WRONG, text, conf         # loud enough, but only other words ([unk]) were heard
 
 
-MESSAGES = {
-    CORRECT:   "Correct! Interface unlocked.",
-    WRONG:     "Wrong answer. Try again.",
-    UNCLEAR:   "Didn't catch that clearly. Please say it again.",
-    NO_SPEECH: "No speech heard. Speak closer to the microphone.",
-}
+MESSAGES = {                            # text shown for each result
+    CORRECT:   "Correct! Interface unlocked.",          # right word, heard clearly
+    WRONG:     "Wrong answer. Try again.",              # a different word
+    UNCLEAR:   "Didn't catch that clearly. Please say it again.",       # maybe the right word, not sure
+    NO_SPEECH: "No speech heard. Speak closer to the microphone.",      # too quiet
+}                                       # end of messages
 
 
 # ---------------------------------------------------------------- main
-def main():
-    ap = argparse.ArgumentParser(description="Neural Calibrator voice unlock (laptop AI)")
-    ap.add_argument("--pico", default="http://192.168.4.1", help="Pico W web address")
-    ap.add_argument("--answer", default="echo", help="riddle answer (one word)")
-    ap.add_argument("--model", default="vosk-model-small-en-us-0.15", help="Vosk model folder")
-    ap.add_argument("--source", choices=["pico", "laptop"], default="pico")
-    ap.add_argument("--wav", help="recognise this WAV file instead of recording")
-    ap.add_argument("--loop", action="store_true", help="keep trying until correct")
-    ap.add_argument("--report", action="store_true", help="send the result to the Pico")
-    ap.add_argument("-v", "--verbose", action="store_true")
-    args = ap.parse_args()
-    answer = args.answer.lower().strip()
+def main():                             # returns the exit code: 0 correct, 1 not, 2 error
+    ap = argparse.ArgumentParser(description="Neural Calibrator voice unlock (laptop AI)")  # command-line parser
+    ap.add_argument("--pico", default="http://192.168.4.1", help="Pico W web address")  # where the Pico is
+    ap.add_argument("--answer", default="echo", help="riddle answer (one word)")  # the answer word
+    ap.add_argument("--model", default="vosk-model-small-en-us-0.15", help="Vosk model folder")  # where the model is
+    ap.add_argument("--source", choices=["pico", "laptop"], default="pico")  # which mic to use
+    ap.add_argument("--wav", help="recognise this WAV file instead of recording")  # skip recording
+    ap.add_argument("--loop", action="store_true", help="keep trying until correct")  # repeat until solved
+    ap.add_argument("--report", action="store_true", help="send the result to the Pico")  # tell the Pico
+    ap.add_argument("-v", "--verbose", action="store_true")             # debug output
+    args = ap.parse_args()              # read the command line
+    answer = args.answer.lower().strip()                # lower case, no spaces around it
 
-    model = load_model(args.model)
-    print(f"Riddle answer: '{answer}'. Model loaded.")
+    model = load_model(args.model)      # load once, use for every attempt
+    print(f"Riddle answer: '{answer}'. Model loaded.")  # ready
 
-    while True:
-        try:
-            if args.wav:
-                with open(args.wav, "rb") as f:
-                    wav_bytes = f.read()
-            elif args.source == "laptop":
-                wav_bytes = record_on_laptop()
-            else:
-                wav_bytes = record_on_pico(args.pico)
+    while True:                         # one pass = one attempt
+        try:                            # recording may fail
+            if args.wav:                # a saved file was given
+                with open(args.wav, "rb") as f:         # open it
+                    wav_bytes = f.read()                # use it as the recording
+            elif args.source == "laptop":               # test mode
+                wav_bytes = record_on_laptop()          # record from the laptop's mic
+            else:                       # normal mode
+                wav_bytes = record_on_pico(args.pico)   # record from the arm's mic
 
-            result, text, conf = decide(model, wav_bytes, answer, args.verbose)
-        except (ConnectionError, TimeoutError, RuntimeError, ValueError) as e:
-            print(f"Error: {e}")
-            if not args.loop or args.wav:
-                return 2
-            time.sleep(2)
-            continue
+            result, text, conf = decide(model, wav_bytes, answer, args.verbose)  # recognise and judge it
+        except (ConnectionError, TimeoutError, RuntimeError, ValueError) as e:  # known problems
+            print(f"Error: {e}")        # show what went wrong
+            if not args.loop or args.wav:               # single attempt: give up
+                return 2                # exit code for an error
+            time.sleep(2)               # wait before trying again
+            continue                    # next attempt
 
-        print(f"[{result.upper()}] {MESSAGES[result]}")
-        if args.report and not args.wav:
-            report_to_pico(args.pico, result)
+        print(f"[{result.upper()}] {MESSAGES[result]}")                 # show the result
+        if args.report and not args.wav:                # only report live attempts
+            report_to_pico(args.pico, result)           # send it to the Pico
 
-        if result == CORRECT or not args.loop or args.wav:
-            return 0 if result == CORRECT else 1
-        time.sleep(1)
+        if result == CORRECT or not args.loop or args.wav:              # finished?
+            return 0 if result == CORRECT else 1        # exit code
+        time.sleep(1)                   # short pause before the next attempt
 
 
-if __name__ == "__main__":
-    sys.exit(main())
+if __name__ == "__main__":              # only when run directly, not when imported
+    sys.exit(main())                    # pass the exit code to the shell

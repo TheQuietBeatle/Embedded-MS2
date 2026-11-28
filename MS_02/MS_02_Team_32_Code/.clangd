@@ -1,7 +1,7 @@
-CompileFlags:
-  CompilationDatabase: build
+CompileFlags:                           # how clangd should compile the files
+  CompilationDatabase: build            # folder that holds compile_commands.json
 
 # pico/stdlib.h is an umbrella header: it is used through the headers it
 # includes, so clangd's "not used directly" hint is a false alarm here.
-Diagnostics:
-  UnusedIncludes: None
+Diagnostics:                            # which warnings clangd shows
+  UnusedIncludes: None                  # no "unused include" hints

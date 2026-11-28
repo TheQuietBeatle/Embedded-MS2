@@ -9,36 +9,36 @@
 //
 // The ADC is 12-bit, so one sample is 0..4095. mic_read_sample() removes the
 // nominal 1.25 V offset and returns about -1241..+1241 (1 count ~ 0.8 mV).
-#ifndef MIC_H
-#define MIC_H
+#ifndef MIC_H                           // include guard: skip this file if it was already included
+#define MIC_H                           // mark this file as included
 
-#include <stdbool.h>
-#include <stdint.h>
+#include <stdbool.h>                    // bool type
+#include <stdint.h>                     // uint16_t, int32_t
 
 #define MIC_SAMPLE_RATE_HZ 16000u   // samples per second (one sample every 62.5 us)
 
 // Set up the ADC on pin (must be GP26, GP27 or GP28).
 // Returns false if the pin has no ADC.
-bool     mic_init(uint8_t pin);
+bool     mic_init(uint8_t pin);         // blocks ~0.6 s while it measures offset and room noise
 
 // Raw ADC value 0..4095 (read immediately, not paced).
-uint16_t mic_read_raw(void);
+uint16_t mic_read_raw(void);            // ADC input is re-selected on every call
 
 // Blocking: waits for the next 16 kHz sample slot, then returns one sample
 // with the 1.25 V offset removed (about -1241..+1241).
-int32_t  mic_read_sample(void);
+int32_t  mic_read_sample(void);         // this pacing is what gives the 16 kHz sample rate
 
 // Read n samples and return the average loudness (mean absolute value,
 // exact DC offset removed). Quiet room ~ 5-30, speech near the mic ~ 200-800.
-uint32_t mic_read_level(uint16_t n);
+uint32_t mic_read_level(uint16_t n);    // blocks for about n / 16000 seconds
 
 // Room noise level measured by mic_init() (keep quiet for ~0.5 s at start-up).
-uint32_t mic_noise_floor(void);
+uint32_t mic_noise_floor(void);         // valid after mic_init()
 
 // Calmer loudness for the logic and the display:
 //  - the room's background noise (noise floor x MIC_FLOOR_MARGIN) is subtracted,
 //    so a quiet room reads 0
 //  - rises at once on a sound, falls back slowly (no flicker between readings)
-uint32_t mic_read_loudness(uint16_t n);
+uint32_t mic_read_loudness(uint16_t n);                 // the one main.c and web_control.c use
 
 #endif // MIC_H

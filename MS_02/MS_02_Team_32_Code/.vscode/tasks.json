@@ -1,38 +1,38 @@
-{
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "Configure CMake",
-            "type": "process",
-            "command": "${env:USERPROFILE}/.pico-sdk/cmake/v4.3.4/bin/cmake.exe",
-            "args": [
-                "-S", "${workspaceFolder}",
-                "-B", "${workspaceFolder}/build",
-                "-G", "Ninja",
-                "-DCMAKE_MAKE_PROGRAM=${env:USERPROFILE}/.pico-sdk/ninja/v1.13.2/ninja.exe"
-            ],
-            "presentation": { "reveal": "always", "panel": "dedicated" },
-            "problemMatcher": []
-        },
-        {
-            "label": "Compile Project",
-            "type": "process",
-            "isBuildCommand": true,
-            "command": "${env:USERPROFILE}/.pico-sdk/ninja/v1.13.2/ninja.exe",
-            "args": ["-C", "${workspaceFolder}/build"],
-            "dependsOn": ["Configure CMake"],
-            "group": { "kind": "build", "isDefault": true },
-            "presentation": { "reveal": "always", "panel": "dedicated" },
-            "problemMatcher": "$gcc"
-        },
-        {
-            "label": "Run Project",
-            "type": "process",
-            "command": "${env:USERPROFILE}/.pico-sdk/picotool/2.3.1/picotool/picotool.exe",
-            "args": ["load", "${workspaceFolder}/build/ms02_neural_calibrator.uf2", "-fx"],
-            "dependsOn": ["Compile Project"],
-            "presentation": { "reveal": "always", "panel": "dedicated" },
-            "problemMatcher": []
-        }
-    ]
-}
+{                                       // VS Code tasks (Terminal > Run Task)
+    "version": "2.0.0",                 // version of this file format
+    "tasks": [                          // list of tasks
+        {                               // task 1: generate the build files
+            "label": "Configure CMake",                 // name shown in the task list
+            "type": "process",          // run the program directly, without a shell
+            "command": "${env:USERPROFILE}/.pico-sdk/cmake/v4.3.4/bin/cmake.exe",  // CMake installed by the Pico extension
+            "args": [                   // its arguments
+                "-S", "${workspaceFolder}",             // source folder
+                "-B", "${workspaceFolder}/build",       // build folder
+                "-G", "Ninja",          // generate Ninja build files
+                "-DCMAKE_MAKE_PROGRAM=${env:USERPROFILE}/.pico-sdk/ninja/v1.13.2/ninja.exe"  // where Ninja is
+            ],                          // end of arguments
+            "presentation": { "reveal": "always", "panel": "dedicated" },  // show it in its own terminal
+            "problemMatcher": []        // don't scan the output for errors
+        },                              // end of task 1
+        {                               // task 2: build both programs
+            "label": "Compile Project",                 // name shown in the task list
+            "type": "process",          // run the program directly, without a shell
+            "isBuildCommand": true,     // marks this as a build task
+            "command": "${env:USERPROFILE}/.pico-sdk/ninja/v1.13.2/ninja.exe",  // Ninja installed by the Pico extension
+            "args": ["-C", "${workspaceFolder}/build"],                 // build inside the build folder
+            "dependsOn": ["Configure CMake"],           // run task 1 first
+            "group": { "kind": "build", "isDefault": true },            // default task for Ctrl+Shift+B
+            "presentation": { "reveal": "always", "panel": "dedicated" },  // show it in its own terminal
+            "problemMatcher": "$gcc"    // turn GCC errors into clickable problems
+        },                              // end of task 2
+        {                               // task 3: flash the driver test
+            "label": "Run Project",     // name shown in the task list
+            "type": "process",          // run the program directly, without a shell
+            "command": "${env:USERPROFILE}/.pico-sdk/picotool/2.3.1/picotool/picotool.exe",  // picotool writes programs to the Pico
+            "args": ["load", "${workspaceFolder}/build/ms02_neural_calibrator.uf2", "-fx"],  // -f = force a reboot to load, -x = run it afterwards
+            "dependsOn": ["Compile Project"],           // run task 2 first
+            "presentation": { "reveal": "always", "panel": "dedicated" },  // show it in its own terminal
+            "problemMatcher": []        // don't scan the output for errors
+        }                               // end of task 3
+    ]                                   // end of the list
+}                                       // end of file

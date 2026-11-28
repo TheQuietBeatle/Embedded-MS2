@@ -1,14 +1,14 @@
-{
-    "cmake.configureOnOpen": false,
-    "cmake.automaticReconfigure": false,
-    "cmake.configureOnEdit": false,
-    "cmake.statusbar.visibility": "hidden",
-    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
-    "clangd.arguments": [
-        "--compile-commands-dir=${workspaceFolder}/build",
-        "--query-driver=**/arm-none-eabi-gcc*"
-    ],
-    "files.associations": {
-        "*.pio": "pio"
-    }
-}
+{                                       // VS Code settings for this folder
+    "cmake.configureOnOpen": false,     // don't run CMake when the folder opens
+    "cmake.automaticReconfigure": false,                // don't re-run CMake by itself
+    "cmake.configureOnEdit": false,     // don't run CMake when CMakeLists.txt is saved
+    "cmake.statusbar.visibility": "hidden",             // hide the CMake Tools buttons
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",  // compile flags for IntelliSense
+    "clangd.arguments": [               // options passed to clangd
+        "--compile-commands-dir=${workspaceFolder}/build",              // where compile_commands.json is
+        "--query-driver=**/arm-none-eabi-gcc*"          // let clangd ask the ARM compiler for its headers
+    ],                                  // end of clangd options
+    "files.associations": {             // file types
+        "*.pio": "pio"                  // .pio files are PIO assembly
+    }                                   // end of file types
+}                                       // end of file

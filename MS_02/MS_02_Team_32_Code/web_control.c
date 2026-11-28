@@ -91,9 +91,9 @@
 enum { WAIST, SHOULDER, ELBOW, WRIST_PITCH, WRIST_ROLL, GRIPPER, NUM_JOINTS };   // joint numbers 0..5; NUM_JOINTS = 6 = how many
 
 // Home position of one joint: the gripper starts CLOSED (in us), every other joint at 90 deg.
-static float home_angle(int joint) {
-    return joint == GRIPPER ? (float)GRIPPER_CLOSE_US : HOME_ANGLE;
-}
+static float home_angle(int joint) {    // joint = number from the enum above
+    return joint == GRIPPER ? (float)GRIPPER_CLOSE_US : HOME_ANGLE;     // gripper: us, others: degrees
+}                                       // end of home_angle
 
 typedef struct {                   // fixed description of one joint
     const char *key;               // short id used in URLs, e.g. "elbow"
@@ -148,9 +148,9 @@ static int joint_by_key(const char *key) {            // find a joint's number f
 }                                                     // end of joint_by_key
 
 // Where a joint is now: degrees, or microseconds for the gripper.
-static float joint_pos(int j) {
-    return j == GRIPPER ? (float)gripper_get_us() : servo_read(&servos[j]);
-}
+static float joint_pos(int j) {         // j = joint number
+    return j == GRIPPER ? (float)gripper_get_us() : servo_read(&servos[j]);  // last commanded position
+}                                       // end of joint_pos
 
 static void set_target(int j, float deg) {            // ask joint j to move to deg (main loop does the moving)
     target[j] = clampf(deg, joints[j].lo, joints[j].hi);   // store it, clamped to the joint's safe range
@@ -161,16 +161,16 @@ static void set_target(int j, float deg) {            // ask joint j to move to 
 // Each line below is one piece of that string; C glues adjacent "..." pieces together.
 // The indentation is OUTSIDE the quotes, so it only helps you read the code -
 // the browser receives the page exactly as before (no extra spaces are sent).
-static const char PAGE[] =
+static const char PAGE[] =              // the page text starts here
 "<!DOCTYPE html>"                                                                 // this is an HTML5 page
-"<html>"
-    "<head>"
+"<html>"                                // start of the document
+    "<head>"                            // page settings (not visible)
         "<meta charset=\"utf-8\">"                                                // text is UTF-8
         "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">" // fit phone screens (no zoomed-out view)
         "<title>Neural Calibrator Arm</title>"                                    // browser tab title
 
         // ======================== CSS (how things look) ========================
-        "<style>"
+        "<style>"                       // style rules start
             "body{font-family:system-ui,sans-serif;background:#111;color:#eee;max-width:520px;margin:auto;padding:16px}" // dark page, centred, max 520 px wide
             ".card{background:#1c1f26;border-radius:12px;padding:14px 16px;margin-bottom:10px}"                         // rounded box around each section
             ".row{display:flex;justify-content:space-between;align-items:baseline}"                                     // label on the left, value on the right
@@ -189,87 +189,87 @@ static const char PAGE[] =
             ".meta{color:#888;font-size:13px}"                                                                          // small grey info text
             ".peak{position:absolute;top:0;bottom:0;width:3px;background:#fff;opacity:.8;left:0}"                       // white peak-hold line on the mic bar
             "#msg{color:#888;font-size:13px;margin-bottom:12px}"                                                        // the "connected / moving" status line
-        "</style>"
-    "</head>"
+        "</style>"                      // style rules end
+    "</head>"                           // end of page settings
 
     // ======================== HTML (what is on the page) ========================
-    "<body>"
+    "<body>"                            // visible part starts
         "<h2>Neural Calibrator Arm</h2>"                                          // page heading
         "<div id=\"msg\">connecting...</div>"                                     // connection status (JS updates it)
 
         // ---- Card 1: grip pressure (FSR) ----
-        "<div class=\"card\">"
-            "<div class=\"row\">"
+        "<div class=\"card\">"          // FSR card box
+            "<div class=\"row\">"       // title row
                 "<span class=\"lbl\">Grip pressure (FSR)</span>"                  // card title
                 "<span class=\"ang\" id=\"fsr\">--</span>"                        // big pressure number
-            "</div>"
-            "<div class=\"bar\">"
+            "</div>"                    // end of title row
+            "<div class=\"bar\">"       // pressure bar track
                 "<div id=\"fsrbar\" class=\"fill\"></div>"                        // bar that grows with pressure
                 "<div id=\"zone\" class=\"zone\"></div>"                          // green hold zone marker
                 "<div id=\"safe\" class=\"safe\"></div>"                          // red safety area
-            "</div>"
-            "<div class=\"row\">"
+            "</div>"                    // end of pressure bar
+            "<div class=\"row\">"       // status row
                 "<span id=\"fsrst\" class=\"st\">--</span>"                       // status word (Too light / IN ZONE / ...)
                 "<span id=\"fsrinfo\" class=\"meta\"></span>"                     // zone range + raw ADC value
-            "</div>"
-        "</div>"
+            "</div>"                    // end of status row
+        "</div>"                        // end of FSR card
 
         // ---- Card 2: microphone test + recording ----
-        "<div class=\"card\">"
-            "<div class=\"row\">"
+        "<div class=\"card\">"          // mic card box
+            "<div class=\"row\">"       // title row
                 "<span class=\"lbl\">Mic test (MAX9814)</span>"                   // card title
                 "<span class=\"ang\" id=\"mic\">--</span>"                        // big loudness number
-            "</div>"
-            "<div class=\"bar\">"
+            "</div>"                    // end of title row
+            "<div class=\"bar\">"       // loudness bar track
                 "<div id=\"micbar\" class=\"fill\"></div>"                        // bar that grows with loudness
                 "<div id=\"micpk\" class=\"peak\"></div>"                         // peak-hold marker
-            "</div>"
-            "<div class=\"row\">"
+            "</div>"                    // end of loudness bar
+            "<div class=\"row\">"       // status row
                 "<span id=\"micst\" class=\"st\">--</span>"                       // status word (Quiet / Sound detected / Loud)
                 "<span class=\"meta\">talk or clap near the mic</span>"           // hint
-            "</div>"
-            "<div class=\"btns\">"
+            "</div>"                    // end of status row
+            "<div class=\"btns\">"      // button row
                 "<button id=\"recbtn\" onclick=\"go('/record')\">&#9679; Record</button>" // asks the Pico to record (/record)
-            "</div>"
+            "</div>"                    // end of button row
             "<div id=\"recst\" class=\"meta\" style=\"margin-top:8px\"></div>"   // recording status text
             "<audio id=\"player\" controls style=\"width:100%;margin-top:8px;display:none\"></audio>"          // audio player (hidden until ready)
             "<a id=\"dl\" download=\"recording.wav\" style=\"display:none;color:#4f9cff\">Download recording.wav</a>" // download link (hidden until ready)
-        "</div>"
+        "</div>"                        // end of mic card
 
         // ---- Cards 3-8: one per joint (built by the JavaScript build() below) ----
-        "<div id=\"joints\"></div>"
+        "<div id=\"joints\"></div>"     // empty until build() fills it
 
-        "<div class=\"btns\" style=\"margin-bottom:10px\">"
-            "<button onclick=\"go('/home')\">Home all (90&deg;)</button>"         // send every joint to 90 deg (/home)
-        "</div>"
+        "<div class=\"btns\" style=\"margin-bottom:10px\">"             // button row
+            "<button onclick=\"go('/home')\">Home all (90&deg;)</button>"         // joints to 90 deg, gripper closed (/home)
+        "</div>"                        // end of button row
 
         // ---- Last card: reward motor ----
-        "<div class=\"card\">"
-            "<div class=\"row\">"
+        "<div class=\"card\">"          // motor card box
+            "<div class=\"row\">"       // title row
                 "<span class=\"lbl\">Reward motor (L298N)</span>"                 // card title
                 "<span class=\"ang\"><span id=\"mot\">0</span>%</span>"           // current motor speed in %
-            "</div>"
-            "<div class=\"btns\">"
-                "<button onclick=\"go('/motor?speed=70&ms=1000')\">Forward 1 s</button>"           // 70% forward for 2 s
-                "<button onclick=\"go('/motor?speed=-70&ms=1000')\">Reverse 1 s</button>"          // 70% reverse for 2 s
+            "</div>"                    // end of title row
+            "<div class=\"btns\">"      // button row
+                "<button onclick=\"go('/motor?speed=70&ms=1000')\">Forward 1 s</button>"           // 70% forward for 1 s
+                "<button onclick=\"go('/motor?speed=-70&ms=1000')\">Reverse 1 s</button>"          // 70% reverse for 1 s
                 "<button class=\"stop\" onclick=\"go('/motor?speed=0&ms=0')\">Stop</button>"       // stop now
-            "</div>"
-        "</div>"
+            "</div>"                    // end of button row
+        "</div>"                        // end of motor card
 
         // ======================== JavaScript (what the page does) ========================
-        "<script>"
+        "<script>"                      // script starts
             "const $=id=>document.getElementById(id);"                            // $('x') = find the element with id="x"
             "let built=false,drag=null;"                                          // built: joint cards made yet? drag: slider being dragged
 
             // btn(text, path): HTML for a button that calls go(path)
-            "function btn(t,p){"
-                "return '<button onclick=\"go(\\''+p+'\\')\">'+t+'</button>'"
-            "}"
+            "function btn(t,p){"        // t = button text, p = path to call
+                "return '<button onclick=\"go(\\''+p+'\\')\">'+t+'</button>'"  // the button's HTML
+            "}"                         // end of btn
 
             // build(d): create one card per servo, using the list in the state JSON
-            "function build(d){"
+            "function build(d){"        // d = state JSON from the Pico
                 "let h='';"                                                       // HTML text being built
-                "for(const s of d.servos){"
+                "for(const s of d.servos){"             // for every joint
                     "const k=s.key;"                                              // joint id, e.g. "elbow"
                     "h+='<div class=\"card\"><div class=\"row\"><span class=\"lbl\">'+s.label+'</span>'+"      // card + title
                       "'<span class=\"ang\"><span id=\"v_'+k+'\"></span>'+(k==='gripper'?' us':'&deg;')+'</span></div>'+"   // current angle, gripper in us (id v_<key>)
@@ -284,69 +284,69 @@ static const char PAGE[] =
                         "+btn('90&deg;','/set?servo='+k+'&angle=90')"                                         // centre
                         "+btn(s.up,'/step?servo='+k+'&delta='+d.nudge))+"                                     // e.g. "Right ->" = 5 deg bigger
                       "'</div></div>'"                                                                         // close buttons + card
-                "}"
+                "}"                     // end of joint loop
                 "$('joints').innerHTML=h;"                                        // put all joint cards on the page
                 "built=true"                                                      // remember the cards exist
-            "}"
+            "}"                         // end of build
 
             // show(d): update the whole page from the state JSON
-            "function show(d){"
+            "function show(d){"         // d = state JSON from the Pico
                 "if(!built)build(d);"                                             // first time: create the joint cards
-                "for(const s of d.servos){"
+                "for(const s of d.servos){"             // for every joint
                     "$('v_'+s.key).textContent=s.angle;"                          // show the current angle
                     "if(drag!==s.key)$('s_'+s.key).value=s.target"                // move the slider (unless you're dragging it)
-                "}"
+                "}"                     // end of joint loop
                 "$('mot').textContent=d.motor;"                                   // motor speed
                 "$('msg').textContent=d.moving?'moving...':'connected';"          // status line
                 "if(d.fsr)fsr(d.fsr);"                                            // update the FSR card
                 "if(d.mic)mic(d.mic);"                                            // update the mic card
                 "if(d.rec)rec(d.rec)"                                             // update the recording part
-            "}"
+            "}"                         // end of show
 
             // rec(r): Record button, status text, player and download link
             "let lastRec=-1;"                                                     // id of the recording already loaded
-            "function rec(r){"
-                "const b=$('recbtn');"
+            "function rec(r){"          // r = the "rec" part of the state
+                "const b=$('recbtn');"  // the Record button
                 "b.textContent=r.state==='recording'?'Recording...':'\\u25CF Record '+r.secs+' s';" // button text
                 "b.disabled=r.state==='recording';"                               // grey out while recording
-                "$('recst').textContent=r.state==='recording'?'Recording - the arm pauses for '+r.secs+' s':r.state==='ready'?'Recording ready':'';"
+                "$('recst').textContent=r.state==='recording'?'Recording - the arm pauses for '+r.secs+' s':r.state==='ready'?'Recording ready':'';"  // status text under the button
                 "if(r.state==='ready'&&r.id!==lastRec){"                          // a NEW recording is ready
-                    "lastRec=r.id;"
+                    "lastRec=r.id;"     // remember this recording is loaded
                     "const u='/audio.wav?id='+r.id;"                              // ?id= stops the browser using an old cached file
                     "$('player').src=u;"                                          // load it into the player
                     "$('player').style.display='block';"                          // show the player
                     "$('dl').href=u;"                                             // point the download link at it
                     "$('dl').style.display='inline-block'"                        // show the link
-                "}"
-            "}"
+                "}"                     // end of new-recording block
+            "}"                         // end of rec
 
             // mic(m): sound level meter
             "let pk=0;"                                                           // peak-hold position (%)
-            "function mic(m){"
+            "function mic(m){"          // m = the "mic" part of the state
                 "if(!m.ok){"                                                      // mic failed to start
-                    "$('mic').textContent='--';"
-                    "$('micst').textContent='Mic not detected - check wiring';"
+                    "$('mic').textContent='--';"        // no number to show
+                    "$('micst').textContent='Mic not detected - check wiring';"  // explain the problem
                     "$('micst').style.color='#ff5d5d';"                           // in red
-                    "return"
-                "}"
+                    "return"            // nothing more to draw
+                "}"                     // end of mic-failed block
                 "const r=Math.log10(Math.max(m.level,m.quiet)/m.quiet)/Math.log10(m.loud/m.quiet),p=Math.min(1,Math.max(0,r))*100;" // level -> 0-100% (log scale, like the ear)
                 "pk=Math.max(p,pk-4);"                                            // peak jumps up, falls slowly
                 "$('mic').textContent=m.level;"                                   // big number
                 "$('micbar').style.width=p+'%';"                                  // bar length
                 "$('micpk').style.left=pk+'%';"                                   // peak marker position
                 "const t=p<5?'Quiet':p<60?'Sound detected':'Loud',c=p<5?'#888':p<60?'#3ecf8e':'#f5b942';" // status word + colour
-                "$('micst').textContent=t;"
-                "$('micst').style.color=c;"
-                "$('micbar').style.background=c"
-            "}"
+                "$('micst').textContent=t;"             // show the status word
+                "$('micst').style.color=c;"             // colour the status word
+                "$('micbar').style.background=c"        // colour the bar the same
+            "}"                         // end of mic
 
             // pct(v, f): FSR units -> % of the bar width (0-100%)
-            "function pct(v,f){"
-                "return Math.min(100,Math.max(0,v*100/f.scale))+'%'"
-            "}"
+            "function pct(v,f){"        // v = units, f = the "fsr" part of the state
+                "return Math.min(100,Math.max(0,v*100/f.scale))+'%'"    // share of the full scale, limited to 0-100
+            "}"                         // end of pct
 
             // fsr(f): grip pressure card
-            "function fsr(f){"
+            "function fsr(f){"          // f = the "fsr" part of the state
                 "const u=f.units;"                                                // pressure in units
                 "$('fsr').textContent=u;"                                         // big number
                 "$('fsrbar').style.width=pct(u,f);"                               // bar length
@@ -358,23 +358,23 @@ static const char PAGE[] =
                 "else if(u>f.zone_hi){t='Too hard';c='#f5b942'}"                  // orange: above the zone
                 "else if(u>=f.zone_lo){t='IN ZONE';c='#3ecf8e'}"                  // green: just right
                 "else{t=u<5?'No pressure':'Too light';c='#4f9cff'}"               // blue: below the zone
-                "$('fsrst').textContent=t;"
-                "$('fsrst').style.color=c;"
-                "$('fsrbar').style.background=c;"
-                "$('fsrinfo').textContent='zone '+f.zone_lo+'-'+f.zone_hi+' | raw ADC '+f.raw"
-            "}"
+                "$('fsrst').textContent=t;"             // show the status word
+                "$('fsrst').style.color=c;"             // colour the status word
+                "$('fsrbar').style.background=c;"       // colour the bar the same
+                "$('fsrinfo').textContent='zone '+f.zone_lo+'-'+f.zone_hi+' | raw ADC '+f.raw"  // zone limits and raw reading
+            "}"                         // end of fsr
 
             // go(path): call a Pico URL and show the JSON state it answers with
-            "async function go(p){"
-                "try{show(await (await fetch(p)).json())}"
+            "async function go(p){"     // p = path to call, e.g. /state
+                "try{show(await (await fetch(p)).json())}"              // fetch it, parse the JSON, redraw the page
                 "catch(e){$('msg').textContent='no response from Pico'}"          // Pico unreachable
-            "}"
+            "}"                         // end of go
 
             "go('/state');"                                                       // load the state once now...
             "let busy=false;"                                                     // a /state request is still waiting for its answer
             "setInterval(async()=>{if(busy)return;busy=true;await go('/state');busy=false},300);"   // ...then refresh every 300 ms, one at a time
-        "</script>"
-    "</body>"
+        "</script>"                     // script ends
+    "</body>"                           // visible part ends
 "</html>";                                                                        // end of the page (and of the C string)
 
 // ---- HTTP server (lwIP raw TCP API) ---------------------------------------------
@@ -536,7 +536,7 @@ static bool all_written(const http_conn_t *c) {        // has the whole response
 }                                                      // end of all_written
 
 // Queue as much of the response as the TCP send buffer allows.
-static void send_more(http_conn_t *c) {
+static void send_more(http_conn_t *c) {                 // c = the connection to send on
     while (!all_written(c)) {                          // repeat while something is left to send
         u16_t space = tcp_sndbuf(c->pcb);              // free space in TCP's send buffer
         if (space == 0) break;                         // buffer full: continue later (on_sent / on_poll)
@@ -673,7 +673,7 @@ static int scan_result(void *env, const cyw43_ev_scan_result_t *r) {   // called
 
 // Print the 2.4 GHz networks the Pico W can see (it cannot see 5 GHz at all).
 // Runs once at start-up, before any join attempt (a scan during a join stalls).
-static void wifi_scan_print(void) {
+static void wifi_scan_print(void) {     // prints over printf (USB serial)
     static scan_summary_t sum;                         // totals (static so it outlives the background scan)
     cyw43_wifi_scan_options_t opts = {0};              // default scan options (all channels)
     printf("Scanning for Wi-Fi networks (duplicates are normal):\n");   // header line
@@ -701,7 +701,7 @@ static void wifi_scan_print(void) {
 // Try to join WIFI_SSID: WPA2 first, then WPA2/WPA3 (for WPA3 phone hotspots).
 // Returns false after WIFI_JOIN_ATTEMPTS failures so the caller can fall back
 // to the Pico's own network.
-static bool wifi_join(void) {
+static bool wifi_join(void) {           // true = joined
     static const uint32_t auth_modes[] = { CYW43_AUTH_WPA2_AES_PSK, CYW43_AUTH_WPA3_WPA2_AES_PSK };   // security types to try, in order
     static const char *auth_names[]    = { "WPA2", "WPA2/WPA3" };                                     // their names for printing
 
@@ -724,7 +724,7 @@ static bool wifi_join(void) {
 }                                                      // end of wifi_join
 
 // Start the Pico's own Wi-Fi network with a DHCP server. Returns its interface.
-static struct netif *start_own_network(void) {
+static struct netif *start_own_network(void) {          // called when wifi_join() fails
     cyw43_arch_disable_sta_mode();                     // stop trying to be a client of another network
     cyw43_arch_enable_ap_mode(AP_SSID, AP_PASSWORD, CYW43_AUTH_WPA2_AES_PSK);   // become an access point (WPA2)
     struct netif *ap = &cyw43_state.netif[CYW43_ITF_AP];   // the network interface for that access point
@@ -741,7 +741,7 @@ static void put_le16(uint8_t *p, uint16_t v) { p[0] = v & 0xff; p[1] = v >> 8; }
 static void put_le32(uint8_t *p, uint32_t v) { put_le16(p, v & 0xffff); put_le16(p + 2, v >> 16); }  // store a 32-bit number, low half first
 
 // Standard 44-byte header for 16-bit mono PCM.
-static void wav_write_header(void) {
+static void wav_write_header(void) {    // fills the first 44 bytes of wav[]
     const uint32_t data_len = REC_SAMPLES * 2u;        // size of the audio data in bytes (2 bytes per sample)
     memcpy(wav, "RIFF", 4);                            // file type marker
     put_le32(wav + 4, 36u + data_len);                 // size of the rest of the file
@@ -758,7 +758,7 @@ static void wav_write_header(void) {
 }                                                    // end of wav_write_header
 
 // Blocking: records REC_SECONDS of audio into wav[]. Servos pause meanwhile.
-static void record_audio(void) {
+static void record_audio(void) {        // called from the main loop only
     rec_state = REC_RECORDING;                       // page will show "Recording..."
     printf("Recording %u s...\n", REC_SECONDS);      // log it over USB
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);   // LED off while recording
@@ -813,8 +813,8 @@ int main(void) {                                     // program starts here
 
     mic_ok = mic_init(PIN_MIC_ADC);                  // set up the ADC pin for the MAX9814 mic
     printf("Mic: %s, room noise floor %lu\n",      // report the result
-           mic_ok ? "MAX9814 on ADC running" : "INIT FAILED (pin must be GP26-28)",
-           mic_ok ? (unsigned long)mic_noise_floor() : 0ul);
+           mic_ok ? "MAX9814 on ADC running" : "INIT FAILED (pin must be GP26-28)",  // status text
+           mic_ok ? (unsigned long)mic_noise_floor() : 0ul);            // room noise (0 if the mic failed)
 
     if (cyw43_arch_init()) {                         // start the Wi-Fi chip (non-zero = failed)
         printf("Wi-Fi chip failed to start\n");      // report
@@ -894,24 +894,24 @@ int main(void) {                                     // program starts here
             for (int i = 0; i < NUM_JOINTS; i++) {   // look through the joints in order
                 if (joint_pos(i) != target[i]) {     // this one isn't where it should be
                     if (i == GRIPPER) {              // gripper: clamped us, through gripper.c only
-                        if (gripper_step_toward((int32_t)target[i], GRIPPER_SLEW_US)) {
+                        if (gripper_step_toward((int32_t)target[i], GRIPPER_SLEW_US)) {  // one step; true once it has arrived
                             printf("Gripper at %u us (pulses on)\n", gripper_get_us());   // debug: firmware is driving GP15
-                        }
-                    } else {
+                        }               // end of arrived check
+                    } else {            // any other joint
                         if (gripper_is_released()) gripper_set_us(gripper_get_us());   // arm moving: hold the gripper again
                         servo_step_toward(&servos[i], target[i], STEP_DEG);   // move it up to 2 deg closer
-                    }
-                    moved = true;
+                    }                   // end of gripper / joint choice
+                    moved = true;       // remember something moved this tick
                     break;                           // only one joint per tick (protects the power supply)
                 }                                    // end of "needs to move" check
             }                                        // end of joint loop
-            if (moved) {
-                last_motion = get_absolute_time();
-            } else if (!gripper_is_released() &&
-                       absolute_time_diff_us(last_motion, get_absolute_time()) >= (int64_t)GRIPPER_IDLE_MS * 1000) {
+            if (moved) {                // the arm is moving
+                last_motion = get_absolute_time();      // restart the idle timer
+            } else if (!gripper_is_released() &&        // idle, gripper still powered...
+                       absolute_time_diff_us(last_motion, get_absolute_time()) >= (int64_t)GRIPPER_IDLE_MS * 1000) {  // ...and idle for at least 2 s
                 gripper_release();                   // arm idle: stop the gripper pulses (no stall current)
-                printf("Gripper released (no pulses)\n");
-            }
+                printf("Gripper released (no pulses)\n");               // debug: log the release
+            }                           // end of idle check
         }                                            // end of motion tick
 
         sleep_ms(1);                                 // short rest so the loop doesn't spin flat out

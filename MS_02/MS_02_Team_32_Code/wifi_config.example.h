@@ -7,10 +7,10 @@
 // If the Pico can't join this network (or WIFI_SSID is ""), it starts its own
 // Wi-Fi "NeuralCalibrator" (password robotarm123): join it and open
 // http://192.168.4.1. To skip your router entirely, set WIFI_SSID to "".
-#ifndef WIFI_CONFIG_H
-#define WIFI_CONFIG_H
+#ifndef WIFI_CONFIG_H                   // include guard: skip this file if it was already included
+#define WIFI_CONFIG_H                   // mark this file as included
 
-#define WIFI_SSID     "YOUR_WIFI_NAME"
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+#define WIFI_SSID     "YOUR_WIFI_NAME"  // name of the 2.4 GHz network to join ("" = own network only)
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"              // password of that network
 
 #endif // WIFI_CONFIG_H

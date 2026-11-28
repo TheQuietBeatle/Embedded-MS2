@@ -1,7 +1,7 @@
 // pins.h - pin constants (one place for every GPIO the project uses).
 // Must match the physical wiring; see wiring.md.
-#ifndef PINS_H
-#define PINS_H
+#ifndef PINS_H                          // include guard: skip this file if it was already included
+#define PINS_H                          // mark this file as included
 
 #define PIN_SERVO_WAIST           0u  // GP0 -> S1.SIG
 #define PIN_SERVO_SHOULDER        1u  // GP1 -> S2.SIG

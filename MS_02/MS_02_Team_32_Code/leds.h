@@ -3,17 +3,17 @@
 //
 // Wiring per LED: GPIO -> 220 ohm -> LED anode (long leg); cathode (short leg) -> GND.
 // Brightness 0 (off) to 255 (full) per LED, 1 kHz PWM.
-#ifndef LEDS_H
-#define LEDS_H
+#ifndef LEDS_H                          // include guard: skip this file if it was already included
+#define LEDS_H                          // mark this file as included
 
-#include <stdint.h>
+#include <stdint.h>                     // uint8_t, uint16_t
 
-void leds_init(uint8_t pin_red, uint8_t pin_yellow, uint8_t pin_green);
+void leds_init(uint8_t pin_red, uint8_t pin_yellow, uint8_t pin_green);  // set up the three pins, all LEDs off
 
 // Set each LED's brightness, 0-255.
-void leds_set(uint8_t red, uint8_t yellow, uint8_t green);
+void leds_set(uint8_t red, uint8_t yellow, uint8_t green);              // keeps these levels until changed
 
-void leds_off(void);
+void leds_off(void);                    // same as leds_set(0, 0, 0)
 
 // Grip traffic light for the FSR force (0-1000 units). Pressing harder goes:
 //   0 (not touched)            -> all off
@@ -22,6 +22,6 @@ void leds_off(void);
 //   green_at .. danger_at-1    -> GREEN   (good grip)
 //   danger_at and above        -> RED flashing (too hard - back off)
 // Call it every time a new force value is read.
-void leds_grip(uint16_t force, uint16_t yellow_at, uint16_t green_at, uint16_t danger_at);
+void leds_grip(uint16_t force, uint16_t yellow_at, uint16_t green_at, uint16_t danger_at);  // thresholds must be in rising order
 
 #endif // LEDS_H

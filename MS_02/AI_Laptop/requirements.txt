@@ -1,4 +1,4 @@
-requests
-numpy
-vosk
+requests                                # HTTP requests to the Pico
+numpy                                   # audio sample maths
+vosk                                    # offline speech recognition
 sounddevice   # only for --source laptop
