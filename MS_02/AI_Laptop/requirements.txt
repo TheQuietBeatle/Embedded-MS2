@@ -1,0 +1,4 @@
+requests
+numpy
+vosk
+sounddevice   # only for --source laptop

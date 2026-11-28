@@ -11,6 +11,10 @@
 static uint8_t in1, in2, ena;
 static int8_t  current_speed;
 
+// Timed run (reward chute): the motor stops by itself at run_end.
+static bool           timed_run;
+static absolute_time_t run_end;
+
 void motor_init(uint8_t pin_in1, uint8_t pin_in2, uint8_t pin_ena) {
     in1 = pin_in1;
     in2 = pin_in2;
@@ -35,6 +39,7 @@ void motor_init(uint8_t pin_in1, uint8_t pin_in2, uint8_t pin_ena) {
 }
 
 void motor_set(int8_t speed) {
+    timed_run = false;        // a direct command always overrides a timed run
     if (speed > 100)  speed = 100;
     if (speed < -100) speed = -100;
     current_speed = speed;
@@ -54,6 +59,7 @@ void motor_set(int8_t speed) {
 }
 
 void motor_coast(void) {
+    timed_run = false;
     current_speed = 0;
     pwm_set_gpio_level(ena, 0);
     gpio_put(in1, 0);
@@ -61,6 +67,7 @@ void motor_coast(void) {
 }
 
 void motor_brake(void) {
+    timed_run = false;
     current_speed = 0;
     gpio_put(in1, 1);
     gpio_put(in2, 1);
@@ -69,4 +76,34 @@ void motor_brake(void) {
 
 int8_t motor_get(void) {
     return current_speed;
+}
+
+// ---- Timed runs and the reward chute ----------------------------------------
+
+void motor_run_for(int8_t speed, uint32_t ms) {
+    if (speed == 0 || ms == 0) {
+        motor_coast();
+        return;
+    }
+    motor_set(speed);                       // start turning (also clears any old timed run)
+    run_end   = make_timeout_time_ms(ms);   // when to stop
+    timed_run = true;
+}
+
+void motor_update(void) {
+    if (timed_run && time_reached(run_end)) {
+        motor_coast();                      // time is up: let the chute stop
+    }
+}
+
+bool motor_is_busy(void) {
+    return timed_run;
+}
+
+void reward_release(void) {
+    motor_run_for((int8_t)(MOTOR_CW_SIGN * REWARD_SPEED), REWARD_RELEASE_MS);
+}
+
+void reward_fail(void) {
+    motor_run_for((int8_t)(-MOTOR_CW_SIGN * REWARD_SPEED), FAIL_CUE_MS);
 }
